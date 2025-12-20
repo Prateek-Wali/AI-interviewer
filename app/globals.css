@@ -1,26 +1,32 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+@theme {
+  --font-sans: var(--font-inter);
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
+/* 1. The Clean Base Background */
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: #ffffff; /* Pure White */
+  color: #0f172a; /* Slate 900 - Dark text for contrast */
+  overflow-x: hidden;
+}
+
+/* 2. Animation for the softer blobs */
+@keyframes drift {
+  0% { transform: translate(0px, 0px) scale(1); }
+  33% { transform: translate(30px, -50px) scale(1.1); }
+  66% { transform: translate(-20px, 20px) scale(0.9); }
+  100% { transform: translate(0px, 0px) scale(1); }
+}
+
+.animate-drift-slow {
+  animation: drift 10s infinite ease-in-out;
+}
+
+.animate-drift-medium {
+  animation: drift 7s infinite ease-in-out reverse;
+}
+
+.animate-drift-fast {
+  animation: drift 5s infinite ease-in-out;
 }
