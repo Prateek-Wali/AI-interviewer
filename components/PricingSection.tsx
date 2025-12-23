@@ -12,9 +12,7 @@ const PricingSection = () => {
         
         {/* Header */}
         <div className="text-center mb-16 max-w-2xl mx-auto">
-          <h2 className="text-sm font-bold text-blue-600 uppercase tracking-widest mb-3">
-            Simple Pricing
-          </h2>
+
           <h3 className="text-4xl font-bold text-slate-900 mb-4">
             Invest in your career, <br/> not your anxiety.
           </h3>
@@ -35,13 +33,13 @@ const PricingSection = () => {
               <p className="text-slate-500 text-sm h-10">Perfect for a quick warm-up before a screening.</p>
             </div>
             <div className="flex items-baseline mb-8">
-              <span className="text-4xl font-bold text-slate-900">$4</span>
+              <span className="text-4xl font-bold text-slate-900">$0</span>
               <span className="text-slate-500 ml-2">/ month</span>
             </div>
             
             <ul className="space-y-4 mb-8 text-slate-600 text-sm">
               <li className="flex items-center gap-3">
-                <span className="text-blue-500">✓</span> 6 AI Interviews / mo
+                <span className="text-blue-500">✓</span> 1 AI Interview / mo
               </li>
               <li className="flex items-center gap-3">
                 <span className="text-blue-500">✓</span> Standard Difficulty
@@ -50,7 +48,6 @@ const PricingSection = () => {
                 <span className="text-blue-500">✓</span> Basic Feedback
               </li>
               <li className="flex items-center gap-3 opacity-50">
-                <span className="text-slate-300">✕</span> No Behavioral Rounds
               </li>
             </ul>
 
@@ -76,10 +73,10 @@ const PricingSection = () => {
             
             <ul className="space-y-4 mb-8 text-slate-300 text-sm">
               <li className="flex items-center gap-3">
-                <span className="text-cyan-400">✓</span> 15 AI Interviews / mo
+                <span className="text-cyan-400">✓</span> 10 AI Interviews / mo
               </li>
               <li className="flex items-center gap-3">
-                <span className="text-cyan-400">✓</span> Hard Difficulty (Google/Meta level)
+                <span className="text-cyan-400">✓</span> Hard Difficulty
               </li>
               <li className="flex items-center gap-3">
                 <span className="text-cyan-400">✓</span> Detailed Feedback Analysis
