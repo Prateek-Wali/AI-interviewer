@@ -1,13 +1,13 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
-import Navbar from "../components/Navbar"; // This puts the Navbar on EVERY page automatically
+import PublicNavbar from "@/components/PublicNavbar"; // <--- Import it
 
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "DevPrepAI | The Technical Interview Pressure Test",
-  description: "Master your technical interview with high-stakes AI simulations."
+  title: "DevPrepAI",
+  description: "AI Technical Interview Prep",
 };
 
 export default function RootLayout({
@@ -18,7 +18,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={inter.className}>
-        <Navbar />
+        <PublicNavbar />  {/* <--- This handles the logic now */}
         {children}
       </body>
     </html>

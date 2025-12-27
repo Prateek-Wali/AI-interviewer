@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation'; // <--- Added this to handle redirects
 import { createClient } from '../utils/supabase/client';
 
 export default function SignupPage() {
@@ -13,18 +14,17 @@ export default function SignupPage() {
 
   // Resend Timer States
   const [resendLoading, setResendLoading] = useState(false);
-  const [timeLeft, setTimeLeft] = useState(0); // 0 means ready to send
+  const [timeLeft, setTimeLeft] = useState(0);
 
   const supabase = createClient();
+  const router = useRouter(); // <--- Initialize the router
 
-  // 1. Timer Logic: Counts down if timeLeft > 0
+  // 1. Timer Logic
   useEffect(() => {
     if (timeLeft === 0) return;
-
     const intervalId = setInterval(() => {
       setTimeLeft((prev) => prev - 1);
     }, 1000);
-
     return () => clearInterval(intervalId);
   }, [timeLeft]);
 
@@ -34,7 +34,7 @@ export default function SignupPage() {
     setLoading(true);
     setError(null);
 
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
@@ -46,9 +46,17 @@ export default function SignupPage() {
       setError(error.message);
       setLoading(false);
     } else {
-      setSuccess(true);
-      setLoading(false);
-      setTimeLeft(120); // Start 2 minute timer immediately
+      // --- THE FIX IS HERE ---
+      // If Supabase returns a session immediately, it means email verification is OFF.
+      if (data.session) {
+        // Log them in and send them to the Home page
+        router.push('/'); 
+      } else {
+        // Otherwise, show the "Check Email" screen
+        setSuccess(true);
+        setLoading(false);
+        setTimeLeft(120);
+      }
     }
   };
 
@@ -68,13 +76,12 @@ export default function SignupPage() {
     if (error) {
       setError("Error resending: " + error.message);
     } else {
-      setTimeLeft(120); // Reset timer back to 2 minutes
+      setTimeLeft(120);
       alert("Email resent! Please check your inbox and spam folder.");
     }
     setResendLoading(false);
   };
 
-  // Helper to format seconds into mm:ss
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
@@ -94,25 +101,23 @@ export default function SignupPage() {
       <div className="relative z-10 w-full max-w-md p-8 bg-white/80 backdrop-blur-md border border-slate-200 rounded-3xl shadow-xl mx-4">
         
         {success ? (
-          /* --- SUCCESS STATE WITH RESEND --- */
+          /* SUCCESS STATE */
           <div className="text-center py-6">
             <div className="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-6 text-3xl">
               ✉️
             </div>
-            <h2 className="text-2xl font-bold text-slate-900 mb-4">Check your email</h2>
+            <h2 className="text-2xl font-bold text-slate-900 mb-4">Check your email (spam)</h2>
             <p className="text-slate-600 mb-6">
               We sent a verification link to <span className="font-bold text-slate-900">{email}</span>.
               <br/>Please click the link to activate your account.
             </p>
 
-            {/* Error Message for Resend (if any) */}
             {error && (
               <div className="text-red-500 text-sm mb-4 bg-red-50 p-2 rounded">
                 {error}
               </div>
             )}
 
-            {/* Resend Button */}
             <div className="space-y-4">
               <button 
                 onClick={handleResend}
@@ -132,7 +137,7 @@ export default function SignupPage() {
             </div>
           </div>
         ) : (
-          /* --- SIGN UP FORM (Same as before) --- */
+          /* SIGN UP FORM */
           <>
             <div className="text-center mb-8">
               <h2 className="text-3xl font-bold text-slate-900">Create Account</h2>
