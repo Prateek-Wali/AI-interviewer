@@ -21,10 +21,10 @@ export default function PublicNavbar() {
         <span className="font-bold text-xl text-slate-900">DevPrepAI</span>
       </Link>
 
-      {/* Center Links (Desktop only) */}
+      {/* Center Links (Updated) */}
       <div className="hidden md:flex gap-8 text-sm font-medium text-slate-600">
         <Link href="/" className="hover:text-blue-600 transition-colors">Home</Link>
-        <Link href="/about" className="hover:text-blue-600 transition-colors">About</Link>
+        <Link href="/pricing" className="hover:text-blue-600 transition-colors">Pricing</Link>
       </div>
 
       {/* Right Action Button */}
