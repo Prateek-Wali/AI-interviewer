@@ -1,18 +1,20 @@
 import React from 'react';
+import Link from 'next/link';
 
-const PricingSection = () => {
+// We define a type so the component knows what "user" looks like
+// (You can use 'any' if you prefer, but this is safer)
+interface PricingProps {
+  user?: any; // Accepting the user session prop
+}
+
+const PricingSection = ({ user }: PricingProps) => {
   return (
-    // Removed: border-t, border-slate-200, bg-white
-    // Added: bg-transparent
     <section id="pricing" className="relative w-full py-24 bg-transparent">
       
-      {/* Note: I removed the Background Grid div from here because it's now in page.tsx */}
-
       <div className="max-w-7xl mx-auto px-6 relative z-10">
         
         {/* Header */}
         <div className="text-center mb-16 max-w-2xl mx-auto">
-
           <h3 className="text-4xl font-bold text-slate-900 mb-4">
             Invest in your career, <br/> not your anxiety.
           </h3>
@@ -25,8 +27,7 @@ const PricingSection = () => {
         {/* Pricing Cards */}
         <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
           
-          {/* TIER 1: STARTER */}
-          {/* Added backdrop-blur to cards so they stand out against the passing background */}
+          {/* --- TIER 1: STARTER (The Important One) --- */}
           <div className="relative group bg-white/80 backdrop-blur-md p-8 rounded-3xl border border-slate-200 hover:border-blue-200 transition-all hover:shadow-lg hover:-translate-y-1">
             <div className="mb-6">
               <h4 className="text-xl font-bold text-slate-900 mb-2">Starter</h4>
@@ -47,16 +48,27 @@ const PricingSection = () => {
               <li className="flex items-center gap-3">
                 <span className="text-blue-500">✓</span> Basic Feedback
               </li>
-              <li className="flex items-center gap-3 opacity-50">
-              </li>
             </ul>
 
-            <button className="w-full py-3 px-6 rounded-xl border border-slate-200 font-semibold text-slate-700 hover:border-blue-500 hover:text-blue-600 transition-all cursor-pointer">
-              Choose Starter
-            </button>
+            {/* --- SMART BUTTON LOGIC --- */}
+            {user ? (
+              // If Logged In: Go to Dashboard
+              <Link href="/dashboard">
+                <button className="w-full py-3 px-6 rounded-xl bg-blue-600 border border-transparent font-bold text-white hover:bg-blue-700 transition-all cursor-pointer shadow-lg shadow-blue-500/30">
+                  Go to Dashboard &rarr;
+                </button>
+              </Link>
+            ) : (
+              // If Logged Out: Go to Signup
+              <Link href="/signup">
+                <button className="w-full py-3 px-6 rounded-xl border border-slate-200 font-semibold text-slate-700 hover:border-blue-500 hover:text-blue-600 transition-all cursor-pointer">
+                  Choose Starter
+                </button>
+              </Link>
+            )}
           </div>
 
-          {/* TIER 2: PRO */}
+          {/* --- TIER 2: PRO (Disabled for now) --- */}
           <div className="relative group bg-slate-900 p-8 rounded-3xl shadow-xl transform md:scale-105 md:-translate-y-2 z-10 border border-slate-800">
             <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-gradient-to-r from-blue-500 to-cyan-500 text-white text-xs font-bold px-4 py-1 rounded-full shadow-lg tracking-wider">
               MOST POPULAR
@@ -67,7 +79,7 @@ const PricingSection = () => {
               <p className="text-slate-400 text-sm h-10">Serious prep for active job seekers.</p>
             </div>
             <div className="flex items-baseline mb-8">
-              <span className="text-4xl font-bold text-white">$10</span>
+              <span className="text-4xl font-bold text-white">$19</span>
               <span className="text-slate-400 ml-2">/ month</span>
             </div>
             
@@ -86,12 +98,12 @@ const PricingSection = () => {
               </li>
             </ul>
 
-            <button className="w-full py-3 px-6 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold transition-all shadow-[0_0_20px_rgba(37,99,235,0.3)] hover:shadow-[0_0_30px_rgba(37,99,235,0.5)] cursor-pointer">
-              Get Pro Access
+            <button disabled className="w-full py-3 px-6 rounded-xl bg-slate-800 text-slate-400 font-bold border border-slate-700 cursor-not-allowed">
+              Payments Coming Soon
             </button>
           </div>
 
-          {/* TIER 3: UNLIMITED */}
+          {/* --- TIER 3: UNLIMITED (Disabled for now) --- */}
           <div className="relative group bg-white/80 backdrop-blur-md p-8 rounded-3xl border border-slate-200 hover:border-purple-200 transition-all hover:shadow-lg hover:-translate-y-1">
             <div className="mb-6">
               <h4 className="text-xl font-bold text-slate-900 mb-2">Unlimited</h4>
@@ -117,8 +129,8 @@ const PricingSection = () => {
               </li>
             </ul>
 
-            <button className="w-full py-3 px-6 rounded-xl border border-slate-200 font-semibold text-slate-700 hover:border-purple-500 hover:text-purple-600 transition-all cursor-pointer">
-              Go Unlimited
+            <button disabled className="w-full py-3 px-6 rounded-xl border border-slate-200 font-semibold text-slate-400 cursor-not-allowed">
+              Coming Soon
             </button>
           </div>
 
