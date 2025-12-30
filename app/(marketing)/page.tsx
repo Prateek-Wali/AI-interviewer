@@ -1,4 +1,4 @@
-import LandingSection from "../components/landingSection";
+import LandingSection from '../../components/marketing/LandingPage';
 import React from 'react';
 
 export default function Home() {
