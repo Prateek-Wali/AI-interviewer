@@ -4,7 +4,7 @@ const LandingSection = () => {
     return (
         <section className="relative min-h-screen w-full flex flex-col items-center justify-center overflow-hidden bg-transparent">
 
-            {/* --- CONTENT LAYER --- */}
+            {/* -- CONTENT LAYER -- */}
             <div className="relative z-10 w-full max-w-5xl px-6 flex flex-col items-center text-center">
 
                 {/* 1. The Badge */}
