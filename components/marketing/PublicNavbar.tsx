@@ -5,6 +5,9 @@ import { usePathname } from "next/navigation";
 
 export default function PublicNavbar() {
   const pathname = usePathname();
+  if (pathname.startsWith("/dashboard") || pathname.startsWith("/interview")) {
+    return null;
+  }
 
   // Hide on dashboard
   if (pathname.startsWith("/dashboard")) {
