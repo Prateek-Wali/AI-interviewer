@@ -1,0 +1,167 @@
+// prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// USER & PREFERENCES
+// ============================================
+model User {
+  // CHANGE: Use uuid so it matches Supabase Auth
+  id              String            @id @default(uuid()) 
+  email           String            @unique
+  name            String?
+  avatarUrl       String?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  
+  // Relations
+  interviews      Interview[]
+  userPreferences UserPreferences?
+  
+  // OPTIONAL: Map this table to a specific name if you want
+  // @@map("users") 
+}
+
+model UserPreferences {
+  id                String   @id @default(cuid())
+  userId            String   @unique
+  
+  // Resume & Profile
+  resumeText        String?  @db.Text
+  targetRole        String?  // e.g., "Software Engineer"
+  targetCompany     String?  // e.g., "Google"
+  experienceLevel   String?  // "Intern", "Entry", "Mid", "Senior"
+  
+  // Learning preferences (for future features)
+  focusAreas        Json?    // ["Algorithms", "System Design", "Behavioral"]
+  
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+
+// ============================================
+// INTERVIEW SESSION
+// ============================================
+
+model Interview {
+  id                String            @id @default(cuid())
+  userId            String
+  status            InterviewStatus   @default(IN_PROGRESS)
+  type              InterviewType     @default(TECHNICAL)
+  difficulty        String            @default("Medium") // Easy, Medium, Hard
+  
+  // Session metadata
+  startedAt         DateTime          @default(now())
+  endedAt           DateTime?
+  durationSeconds   Int?              // Actual duration in seconds
+  targetDuration    Int               @default(1800) // 30 minutes = 1800 seconds
+  
+  // Gemini conversation tracking
+  conversationId    String?           // Gemini session ID (if needed)
+  
+  // Optional: Media URLs (for future video analysis)
+  videoUrl          String?
+  audioUrl          String?
+  
+  // Relations
+  user              User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  questions         Question[]
+  analysis          Analysis?
+  
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+  
+  @@index([userId])
+  @@index([status])
+}
+
+// ============================================
+// QUESTIONS & RESPONSES
+// ============================================
+
+model Question {
+  id                String      @id @default(cuid())
+  interviewId       String
+  
+  // Question details
+  questionText      String      @db.Text
+  questionType      String      // "Technical", "Behavioral", "Follow-up", "System Design"
+  askedAt           DateTime    @default(now())
+  
+  // User's response
+  userResponse      String?     @db.Text  // Transcript of answer (NULL until answered)
+  responseStartTime Int?        // Seconds from interview start
+  responseEndTime   Int?        // Seconds from interview start
+  responseDuration  Int?        // Seconds taken to answer
+  
+  // Audio analysis metrics (captured during response)
+  fillerWordCount   Int?        // "um", "uh", "like", etc.
+  pauseCount        Int?        // Number of pauses > 1 second
+  avgPauseDuration  Float?      // Average pause length in seconds
+  speakingRate      Float?      // Words per minute
+  confidenceScore   Float?      // 0-100 based on voice analysis
+  
+  interview         Interview   @relation(fields: [interviewId], references: [id], onDelete: Cascade)
+  
+  @@index([interviewId])
+}
+
+// ============================================
+// AI ANALYSIS RESULTS
+// ============================================
+
+model Analysis {
+  id                String      @id @default(cuid())
+  interviewId       String      @unique
+  
+  // Overall Scores (0-100)
+  overallScore      Float
+  technicalScore    Float
+  communicationScore Float
+  confidenceScore   Float
+  
+  // Detailed Analysis (stored as JSON)
+  strengths         Json        // Array: [{ title, description, example }]
+  weaknesses        Json        // Array: [{ title, description, improvement }]
+  improvements      Json        // Array: [{ topic, resources: [] }]
+  
+  // Question-by-question breakdown
+  questionAnalysis  Json        // Array matching Question records
+  
+  // AI-generated summary
+  summaryText       String      @db.Text
+  
+  // Benchmarking (future feature)
+  percentileRank    Float?      // How user compares to others
+  
+  interview         Interview   @relation(fields: [interviewId], references: [id], onDelete: Cascade)
+  createdAt         DateTime    @default(now())
+  
+  @@index([interviewId])
+}
+
+// ============================================
+// ENUMS
+// ============================================
+
+enum InterviewStatus {
+  IN_PROGRESS   // Interview is currently happening
+  COMPLETED     // Interview finished, analysis complete
+  ANALYZING     // Interview ended, analysis in progress
+  CANCELLED     // User cancelled mid-interview
+}
+
+enum InterviewType {
+  TECHNICAL       // Coding, algorithms, data structures
+  BEHAVIORAL      // Past experiences, situational questions
+  SYSTEM_DESIGN   // Architecture, scalability questions
+  MIXED           // Combination of types
+}
