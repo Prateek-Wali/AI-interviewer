@@ -11,27 +11,68 @@ export default function InterviewSession() {
   const [stream, setStream] = useState<MediaStream | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isMuted, setIsMuted] = useState(false);
+  const [status, setStatus] = useState("idle");
 
   // Use the hook
   const { connect, startRecording, isConnected, isSpeaking, volume } = useGeminiLive();
 
   // --- CAMERA INIT ---
   const initializeMedia = async () => {
+    // 1. CLEAR LOGS
+    console.clear();
+    console.log("--- STARTING INIT ---");
+
     try {
+      // STEP A: Try to get the camera ONLY
+      console.log("1. Requesting Camera...");
       const mediaStream = await navigator.mediaDevices.getUserMedia({ 
         video: { width: 1280, height: 720, facingMode: "user" }, 
         audio: true 
       });
+      
+      console.log("✅ Camera Access GRANTED");
       setStream(mediaStream);
-      setHasPermission(true);
+      setHasPermission(true); 
 
-      // Start the AI connection!
-      connect();
+    } catch (cameraError) {
+      console.error("❌ CAMERA FAILURE:", cameraError);
+      alert("Real Camera Error: Check your browser settings or OS permissions.");
+      return; // Stop here if camera fails
+    }
+
+    try {
+      // STEP B: Try to connect to API
+      console.log("2. Fetching Persona from API...");
+      setStatus("fetching_persona");
+
+      const response = await fetch("/api/interviews/start", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+           type: "TECHNICAL",
+           difficulty: "Medium",
+           targetDuration: 1800
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`API Failed: ${response.status} - ${errorText}`);
+      }
+
+      const data = await response.json();
+      console.log("✅ API Success. Persona:", data.systemPrompt);
+
+      // STEP C: Connect Gemini
+      console.log("3. Connecting to Gemini...");
+      setStatus("connecting_gemini");
+      connect(data.systemPrompt);
       startRecording();
+      setStatus("active");
 
-    } catch (err) {
-      console.error(err);
-      alert("Camera permission denied. We need it for the simulation.");
+    } catch (logicError) {
+      console.error("❌ LOGIC/API FAILURE:", logicError);
+      alert(`System Error: ${(logicError as Error).message}`);
     }
   };
 
