@@ -16,7 +16,7 @@ export default function PublicNavbar() {
 
   return (
     // PILL CONTAINER: Fixed position, centered, rounded-full
-    <nav className="fixed top-4 left-1/2 -translate-x-1/2 z-50 w-[90%] max-w-5xl bg-white/80 backdrop-blur-md border border-slate-200 shadow-lg rounded-full px-6 py-3 flex items-center justify-between">
+    <nav className="fixed top-4 left-1/2 -translate-x-1/2 z-50 w-[90%] max-w-5xl bg-white/50 backdrop-blur-md border border-slate-200 shadow-lg rounded-full px-6 py-3 flex items-center justify-between">
       
       {/* Logo */}
       <Link href="/" className="flex items-center gap-2">
