@@ -56,8 +56,9 @@ export default async function DashboardLayout({
       {/* --- 3. NEW: FLOATING SIDEBAR (Left Side) --- */}
       <aside className="fixed left-6 top-32 z-40 hidden xl:flex flex-col gap-4">
 
-        {/* Button 1: Start Interview (NOW LINKED) */}
-        <Link href="/interview">
+        {/* Button 1: Start Interview (NOW LINKED TO SETUP) */}
+        {/* CHANGED HERE: /interview -> /interview/setup */}
+        <Link href="/interview/setup">
           <button className="group relative flex items-center gap-3 bg-white/80 backdrop-blur-xl border border-slate-200/60 shadow-sm hover:shadow-md hover:border-blue-300 p-4 rounded-2xl transition-all w-64 text-left cursor-pointer">
             <div className="w-10 h-10 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-xl group-hover:scale-110 transition-transform">
               🚀

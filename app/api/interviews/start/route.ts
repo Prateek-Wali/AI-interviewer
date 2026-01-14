@@ -1,14 +1,13 @@
-// app/api/interviews/start/route.ts
 import { createClient } from "@/app/utils/supabase/server";
 import { NextResponse } from "next/server";
-import { db } from "@/lib/prisma"; // Make sure this import is correct now!
+import { db } from "@/lib/prisma";
 
 export async function POST(request: Request) {
   try {
     // 1. Get the User from Supabase Auth
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
-    
+
     if (!user || !user.email) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -17,18 +16,15 @@ export async function POST(request: Request) {
     const { type, difficulty, targetDuration } = body;
 
     // --- 🛡️ SAFETY FIX: ENSURE USER EXISTS ---
-    // This prevents "Foreign Key Constraint" errors if the user is new
     await db.user.upsert({
       where: { id: user.id },
-      update: { email: user.email }, // Update email if changed
+      update: { email: user.email },
       create: {
         id: user.id,
         email: user.email,
         name: user.user_metadata?.full_name || "Candidate",
-        // Add other required fields from your schema here if needed
       },
     });
-    // ----------------------------------------
 
     // 2. Fetch user preferences (safely handle if they don't exist)
     const userPrefs = await db.userPreferences.findUnique({
@@ -56,53 +52,55 @@ export async function POST(request: Request) {
       userContext: {
         targetRole: userPrefs?.targetRole || "General",
         experienceLevel: userPrefs?.experienceLevel || "Entry",
-        resumeSummary: userPrefs?.resumeText?.substring(0, 500)
+        resumeSummary: userPrefs?.resumeText?.substring(0, 100) + "..."
       }
     });
 
   } catch (error: any) {
-    // LOG THE REAL ERROR TO YOUR TERMINAL
-    console.error("❌ SERVER CRASH:", error); 
-    
+    console.error("❌ SERVER CRASH:", error);
     return NextResponse.json(
-      { error: "Internal Server Error", details: error.message }, 
+      { error: "Internal Server Error", details: error.message },
       { status: 500 }
     );
   }
 }
 
-// ... keep your generateSystemPrompt function below ...
+// --- UPDATED PROMPT GENERATOR ---
 function generateSystemPrompt(userPrefs: any, type: string, difficulty: string) {
-    const roleContext = userPrefs?.targetRole || "Software Engineer";
-    const experienceLevel = userPrefs?.experienceLevel || "Entry Level";
-    const resumeSummary = userPrefs?.resumeText?.substring(0, 500) || "Not provided";
-  
-    return `You are an experienced ${type?.toLowerCase() || 'technical'} interviewer conducting a ${difficulty} level interview for a ${roleContext} position.
+  const roleContext = userPrefs?.targetRole || "Software Engineer";
+  const experienceLevel = userPrefs?.experienceLevel || "Entry Level";
+
+  // Resume Context
+  const resumeContext = userPrefs?.resumeText
+    ? `CANDIDATE RESUME:\n"${userPrefs.resumeText.substring(0, 5000)}"`
+    : "No resume provided.";
+
+  return `You are "Alex", a senior software engineer conducting a strict ${type?.toLowerCase() || 'behavioral'} interview for a ${roleContext} position.
   
   USER CONTEXT:
   - Target Role: ${roleContext}
   - Experience Level: ${experienceLevel}
-  - Resume Summary: ${resumeSummary}
+  ${resumeContext}
   
   INTERVIEW INSTRUCTIONS:
-  1. Start with a brief introduction and ask the candidate to tell you about themselves
-  2. Ask relevant ${type?.toLowerCase() || 'technical'} questions based on their experience and the role
-  3. BE ADAPTIVE:
-  - If they give a vague answer, ask them to elaborate with specific examples
-  - If they mention something interesting, ask a follow-up question to go deeper
-  - If they struggle, give a subtle hint but don't give away the answer
-  - If they ramble or go off-topic, politely redirect them
-  4. Maintain a professional but slightly challenging tone (like a real senior engineer)
-  5. Keep track of time - aim for 5-7 questions in 30 minutes
-  6. Listen to their complete answer before deciding on the next question
-  7. Ask one question at a time and wait for their response
+  1. **The Introduction:** Start by briefly introducing yourself as the interviewer and inform them how this is a behavioral interview. Ask the candidate to tell you about themselves.
   
-  QUESTION STRATEGY:
-  - Start with an easier warm-up question
-  - Gradually increase difficulty based on their responses
-  - Mix conceptual questions with practical scenario-based questions
-  - Ask follow-ups when they mention projects or technologies
-  - Probe for depth: "How did you handle X?", "What would you do differently?"
+  2. **THE PIVOT RULE (Crucial):** - When the candidate finishes their introduction, acknowledge it briefly (e.g., "Thanks for that background.") but **DO NOT** ask follow-up questions about their hobbies, life story, or general intro.
+     - **IMMEDIATELY** pivot to 2 questions based on their resume. They might sound like - "Walk me through your resume and relevant experience." or "Tell me about a time you had to learn a new technology for a project."
+     - **NEXT** After the resume questions move onto questions like "Describe a time when someone on the team was uncooperative." or "Describe a time when someone on the team had a different viewpoint."
   
-  Your goal is to have a natural, conversational interview - not to follow a rigid script. Begin the interview now.`;
-  }
+  3. **Resume Deep Dive:**
+     - Pick specific projects, technologies, or claims from the resume text provided above.
+     - Drill down into *why* they made certain technical decisions.
+
+  4. **SILENCE HANDLING (CRITICAL):**
+     - Do NOT interrupt if the user pauses without finishing their complete thought for 1-2 seconds. They are thinking.
+     - Only speak when they have clearly finished a complete thought.
+     - If the silence lasts longer than 3 seconds, simply ask: "Are you still there?"
+  
+  5. **Behavioral Guidelines:**
+     - **Interrupt if needed:** If they are rambling about generalities, politely cut them off and redirect to technical specifics.
+     - **Be Skeptical:** If they claim to be an expert, test that claim.
+  
+  Your goal is to assess their hard skills, not their life story. Begin the interview now by introducing yourself.`;
+}
