@@ -1,14 +1,13 @@
-// app/api/interviews/start/route.ts
 import { createClient } from "@/app/utils/supabase/server";
 import { NextResponse } from "next/server";
-import { db } from "@/lib/prisma"; // Make sure this import is correct now!
+import { db } from "@/lib/prisma";
 
 export async function POST(request: Request) {
   try {
     // 1. Get the User from Supabase Auth
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
-    
+
     if (!user || !user.email) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -19,18 +18,13 @@ export async function POST(request: Request) {
     // --- 🛡️ SAFETY FIX: ENSURE USER EXISTS ---
     await db.user.upsert({
       where: { id: user.id },
-      update: { 
-          email: user.email,
-          updatedAt: new Date() // <--- Add this to be safe
-      },
+      update: { email: user.email },
       create: {
         id: user.id,
         email: user.email,
         name: user.user_metadata?.full_name || "Candidate",
-        updatedAt: new Date() // <--- Add this to satisfy the NOT NULL rule
       },
     });
-    // ----------------------------------------
 
     // 2. Fetch user preferences (safely handle if they don't exist)
     const userPrefs = await db.userPreferences.findUnique({
@@ -58,53 +52,65 @@ export async function POST(request: Request) {
       userContext: {
         targetRole: userPrefs?.targetRole || "General",
         experienceLevel: userPrefs?.experienceLevel || "Entry",
-        resumeSummary: userPrefs?.resumeText?.substring(0, 500)
+        resumeSummary: userPrefs?.resumeText?.substring(0, 100) + "..."
       }
     });
 
   } catch (error: any) {
-    // LOG THE REAL ERROR TO YOUR TERMINAL
-    console.error("❌ SERVER CRASH:", error); 
-    
+    console.error("❌ SERVER CRASH:", error);
     return NextResponse.json(
-      { error: "Internal Server Error", details: error.message }, 
+      { error: "Internal Server Error", details: error.message },
       { status: 500 }
     );
   }
 }
 
-// ... keep your generateSystemPrompt function below ...
+// --- UPDATED PROMPT GENERATOR ---
 function generateSystemPrompt(userPrefs: any, type: string, difficulty: string) {
-    const roleContext = userPrefs?.targetRole || "Software Engineer";
-    const experienceLevel = userPrefs?.experienceLevel || "Entry Level";
-    const resumeSummary = userPrefs?.resumeText?.substring(0, 500) || "Not provided";
-  
-    return `You are an experienced ${type?.toLowerCase() || 'technical'} interviewer conducting a ${difficulty} level interview for a ${roleContext} position.
+  const roleContext = userPrefs?.targetRole || "Software Engineer";
+  const experienceLevel = userPrefs?.experienceLevel || "Entry Level";
+
+  // Resume Context
+  const resumeContext = userPrefs?.resumeText
+    ? `CANDIDATE RESUME:\n"${userPrefs.resumeText.substring(0, 5000)}"`
+    : "No resume provided.";
+
+  return `You are "Alex", a senior software engineer conducting a strict ${type?.toLowerCase() || 'behavioral'} interview for a ${roleContext} position.
   
   USER CONTEXT:
   - Target Role: ${roleContext}
   - Experience Level: ${experienceLevel}
-  - Resume Summary: ${resumeSummary}
+  ${resumeContext}
   
-  INTERVIEW INSTRUCTIONS:
-  1. Start with a brief introduction and ask the candidate to tell you about themselves
-  2. Ask relevant ${type?.toLowerCase() || 'technical'} questions based on their experience and the role
-  3. BE ADAPTIVE:
-  - If they give a vague answer, ask them to elaborate with specific examples
-  - If they mention something interesting, ask a follow-up question to go deeper
-  - If they struggle, give a subtle hint but don't give away the answer
-  - If they ramble or go off-topic, politely redirect them
-  4. Maintain a professional but slightly challenging tone (like a real senior engineer)
-  5. Keep track of time - aim for 5-7 questions in 30 minutes
-  6. Listen to their complete answer before deciding on the next question
-  7. Ask one question at a time and wait for their response
+--- CRITICAL INSTRUCTIONS ---
+
+  PHASE 1: THE QUALITY GATE (ALWAYS APPLY THIS)
+  Before moving to a new topic, you MUST evaluate the candidate's last answer.
+  - **IF THE ANSWER IS LAZY (e.g., "Yes", "I did that", "It was good"):**
+    - STOP. Do not move on.
+    - Call them out professionally. Example: "Could you elaborate? 'Yes' doesn't give me much insight into your process." or "I need more detail than that. Walk me through the specifics."
+  - **IF THE ANSWER IS VAGUE:**
+    - Drill down immediately. "How exactly did you implement that?" or "What specific metrics improved?"
+  - **ONLY** move to the next question if they have provided a substantive, multi-sentence answer.
+
+  PHASE 2: THE INTERVIEW FLOW
+  1. **Intro:** Briefly introduce yourself as Alex. Ask: "Tell me about yourself."
   
-  QUESTION STRATEGY:
-  - Start with an easier warm-up question
-  - Gradually increase difficulty based on their responses
-  - Mix conceptual questions with practical scenario-based questions
-  - Ask follow-ups when they mention projects or technologies
-  - Probe for depth: "How did you handle X?", "What would you do differently?"
+  2. **The Pivot:** After their intro, acknowledge it briefly but **DO NOT** follow up on personal details. Immediately pivot to their resume.
+     - *Example:* "Thanks. I want to dive into your resume. You mentioned Project X..."
+
+  3. **Resume Deep Dive (The Core):**
+     - Grill them on specific technologies listed in the resume text above.
+     - Ask *why* they chose technology X over Y.
+     - Challenge their claims. If they list "Expert in SQL", ask a hard optimization question.
+
+  4. **Behavioral Friction:**
+     - Ask: "Describe a time a teammate disagreed with you. How did you handle it?"
+     - If they give a generic "we talked it out" answer, push back: "That sounds too easy. Give me a specific example where there was real conflict."
+
+  PHASE 3: SILENCE & PACING
+  - If the user pauses for 1-2 seconds, **WAIT**. Do not interrupt. They are thinking.
+  - If they are silent for >5 seconds, ask: "Take your time, let me know when you're ready."
   
-  Your goal is to have a natural, conversational interview - not to follow a rigid script. Begin the interview now.`;
-  }
+  Begin the interview now by introducing yourself.`;
+}
