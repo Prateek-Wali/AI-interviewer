@@ -17,15 +17,17 @@ export async function POST(request: Request) {
     const { type, difficulty, targetDuration } = body;
 
     // --- 🛡️ SAFETY FIX: ENSURE USER EXISTS ---
-    // This prevents "Foreign Key Constraint" errors if the user is new
     await db.user.upsert({
       where: { id: user.id },
-      update: { email: user.email }, // Update email if changed
+      update: { 
+          email: user.email,
+          updatedAt: new Date() // <--- Add this to be safe
+      },
       create: {
         id: user.id,
         email: user.email,
         name: user.user_metadata?.full_name || "Candidate",
-        // Add other required fields from your schema here if needed
+        updatedAt: new Date() // <--- Add this to satisfy the NOT NULL rule
       },
     });
     // ----------------------------------------
