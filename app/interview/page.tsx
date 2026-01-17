@@ -66,7 +66,7 @@ export default function InterviewSession() {
       // STEP C: Connect Gemini
       console.log("3. Connecting to Gemini...");
       setStatus("connecting_gemini");
-      connect(data.systemPrompt);
+      connect(data.systemPrompt, data.interviewId);
       startRecording();
       setStatus("active");
 
