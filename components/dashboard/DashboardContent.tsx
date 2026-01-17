@@ -14,7 +14,6 @@ export default function DashboardContent({ firstName }: DashboardContentProps) {
   return (
     // CHANGE 1: Removed 'bg-white' so the background layers show through clearly
     <div className="min-h-screen text-gray-900 overflow-hidden relative">
-      
       {/* CHANGE 2: Changed to 'fixed inset-0' so it starts at the very top of the screen */}
       {/* GRID PATTERN */}
       <div className="fixed inset-0 bg-[linear-gradient(to_right,#f1f5f9_1px,transparent_1px),linear-gradient(to_bottom,#f1f5f9_1px,transparent_1px)] bg-[size:40px_40px] pointer-events-none -z-10"></div>
