@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import { useGeminiLive } from "../hooks/use-gemini-live"; 
 
 export default function InterviewSession() {
@@ -12,9 +11,16 @@ export default function InterviewSession() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isMuted, setIsMuted] = useState(false);
   const [status, setStatus] = useState("idle");
-
-  // Use the hook
-  const { connect, startRecording, isConnected, isSpeaking, volume } = useGeminiLive();
+  
+  const [currentInterviewId, setCurrentInterviewId] = useState<string | null>(null);
+  const { 
+    connect, 
+    disconnect,     // <--- Crucial: We need this to kill the connection
+    startRecording, 
+    isConnected, 
+    isSpeaking, 
+    volume 
+  } = useGeminiLive();
 
   // --- CAMERA INIT ---
   const initializeMedia = async () => {
@@ -74,6 +80,32 @@ export default function InterviewSession() {
       console.error("❌ LOGIC/API FAILURE:", logicError);
       alert(`System Error: ${(logicError as Error).message}`);
     }
+  };
+
+  const handleEndSession = async () => {
+    // 1. Cut the connection to stop the AI from talking/listening
+    disconnect(); 
+
+    // 2. Stop the camera/mic tracks physically
+    if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+    }
+
+    // 3. Save the end time to the database
+    if (currentInterviewId) {
+        try {
+            await fetch(`/api/interviews/${currentInterviewId}/end`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ endedAt: new Date() })
+            });
+        } catch (e) {
+            console.error("Failed to save end time", e);
+        }
+    }
+
+    // 4. Redirect to dashboard
+    router.push("/dashboard");
   };
 
   useEffect(() => {
@@ -185,12 +217,14 @@ export default function InterviewSession() {
          </button>
 
          {/* End Call (Pill) */}
-         <Link href="/dashboard">
-             <button className="bg-red-500 hover:bg-red-600 text-white px-8 py-4 rounded-full font-bold shadow-lg hover:shadow-red-500/30 hover:-translate-y-1 transition-all flex items-center gap-2">
-                <span className="w-2 h-2 bg-white rounded-full"></span>
-                End Session
-             </button>
-         </Link>
+        <button 
+          onClick={handleEndSession} 
+          className="bg-red-500 hover:bg-red-600 text-white px-8 py-4 rounded-full font-bold shadow-lg hover:shadow-red-500/30 hover:-translate-y-1 transition-all flex items-center gap-2"
+        >
+          <span className="w-2 h-2 bg-white rounded-full"></span>
+          End Session
+        </button>
+        
 
          {/* Settings / More */}
          <button className="w-14 h-14 bg-white/80 backdrop-blur-md border border-white text-slate-600 rounded-full flex items-center justify-center hover:bg-white shadow-lg hover:-translate-y-1 transition-all">
