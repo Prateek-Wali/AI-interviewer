@@ -12,9 +12,16 @@ export default function InterviewSession() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isMuted, setIsMuted] = useState(false);
   const [status, setStatus] = useState("idle");
-
-  // Use the hook
-  const { connect, startRecording, isConnected, isSpeaking, volume } = useGeminiLive();
+  
+  const [currentInterviewId, setCurrentInterviewId] = useState<string | null>(null);
+  const { 
+    connect, 
+    disconnect,     // <--- Crucial: We need this to kill the connection
+    startRecording, 
+    isConnected, 
+    isSpeaking, 
+    volume 
+  } = useGeminiLive();
 
   // --- CAMERA INIT ---
   const initializeMedia = async () => {
@@ -74,6 +81,32 @@ export default function InterviewSession() {
       console.error("❌ LOGIC/API FAILURE:", logicError);
       alert(`System Error: ${(logicError as Error).message}`);
     }
+  };
+
+  const handleEndSession = async () => {
+    // 1. Cut the connection to stop the AI from talking/listening
+    disconnect(); 
+
+    // 2. Stop the camera/mic tracks physically
+    if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+    }
+
+    // 3. Save the end time to the database
+    if (currentInterviewId) {
+        try {
+            await fetch(`/api/interviews/${currentInterviewId}/end`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ endedAt: new Date() })
+            });
+        } catch (e) {
+            console.error("Failed to save end time", e);
+        }
+    }
+
+    // 4. Redirect to dashboard
+    router.push("/dashboard");
   };
 
   useEffect(() => {
