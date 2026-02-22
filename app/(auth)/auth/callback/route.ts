@@ -1,10 +1,10 @@
-import { createClient } from "../../../utils/supabase/server";
+import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
-  
+
   // This looks for "next=/pricing". If missing, defaults to "/dashboard"
   const next = searchParams.get("next") ?? "/dashboard";
 
@@ -14,7 +14,7 @@ export async function GET(request: Request) {
     if (!error) {
       const forwardedHost = request.headers.get("x-forwarded-host"); // Support load balancers
       const isLocalEnv = origin.includes("localhost");
-      
+
       if (isLocalEnv) {
         return NextResponse.redirect(`${origin}${next}`);
       } else if (forwardedHost) {

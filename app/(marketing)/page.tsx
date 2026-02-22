@@ -158,9 +158,9 @@ export default function Home() {
                     </div>
 
                     <h3 className="text-xl font-bold text-slate-900">Prateek Wali</h3>
-                    <p className="text-blue-600 font-medium text-sm mb-4">Founder & Engineering Lead</p>
+                    <p className="text-blue-600 font-medium text-sm mb-4">Founder</p>
                     <p className="text-slate-600 text-sm leading-relaxed max-w-sm">
-                        CS Student at NJIT & Amazon Junior Software Developer. I realized that passing the technical screen wasn't about code correctness, but about handling the "heat" of the moment.
+                        CS Student at NJIT. I realized that passing the interview process was harder than the job itself, so I made this webapp to help students to be able to feel ready for the interview.
                     </p>
                 </div>
 
@@ -175,10 +175,10 @@ export default function Home() {
                         </div>
                     </div>
 
-                    <h3 className="text-xl font-bold text-slate-900">Your Co-Founder</h3>
-                    <p className="text-purple-600 font-medium text-sm mb-4">Co-Founder & Tech Lead</p>
+                    <h3 className="text-xl font-bold text-slate-900">Shreeya Gupta</h3>
+                    <p className="text-purple-600 font-medium text-sm mb-4">Co-Founder</p>
                     <p className="text-slate-600 text-sm leading-relaxed max-w-sm">
-                        [Bio Placeholder] Specialist in distributed systems and AI architecture. Building the backend engine that powers our real-time voice latency.
+                        Computer Engineering student at UMD.
                     </p>
                 </div>
 
