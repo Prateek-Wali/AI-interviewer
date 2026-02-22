@@ -1,6 +1,6 @@
 'use server'
 
-import { createClient } from "@/app/utils/supabase/server";
+import { createClient } from "@/lib/supabase/server";
 import { db } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 
@@ -29,7 +29,7 @@ export async function uploadResume(formData: FormData) {
     if (file.type === "application/pdf") {
       // MOVED INSIDE: Only load the library when we are ready to use it
       const pdfParse = require("pdf-parse/lib/pdf-parse.js");
-      
+
       const arrayBuffer = await file.arrayBuffer();
       const buffer = Buffer.from(arrayBuffer);
       const data = await pdfParse(buffer);
@@ -49,7 +49,7 @@ export async function uploadResume(formData: FormData) {
       create: {
         userId: user.id,
         resumeText: extractedText,
-        experienceLevel: "Entry", 
+        experienceLevel: "Entry",
         targetRole: "Software Engineer"
       },
       update: {

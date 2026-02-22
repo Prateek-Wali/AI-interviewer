@@ -1,4 +1,4 @@
-import { createClient } from "@/app/utils/supabase/server";
+import { createClient } from "@/lib/supabase/server";
 import DashboardContent from "@/components/dashboard/DashboardContent";
 
 export default async function DashboardPage() {
