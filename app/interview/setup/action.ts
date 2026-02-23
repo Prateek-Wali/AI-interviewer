@@ -3,9 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { db } from "@/lib/prisma";
 import { redirect } from "next/navigation";
-
-// DELETE THE REQUIRE FROM HERE
-// const pdfParse = require("pdf-parse");  <-- REMOVE THIS LINE
+import { generateQuestionBank, saveQuestionBank } from "@/lib/gemini";
 
 export async function uploadResume(formData: FormData) {
   // 1. Authenticate User
@@ -27,7 +25,6 @@ export async function uploadResume(formData: FormData) {
 
   try {
     if (file.type === "application/pdf") {
-      // MOVED INSIDE: Only load the library when we are ready to use it
       const pdfParse = require("pdf-parse/lib/pdf-parse.js");
 
       const arrayBuffer = await file.arrayBuffer();
@@ -43,7 +40,7 @@ export async function uploadResume(formData: FormData) {
     // 4. Clean the text
     extractedText = extractedText.replace(/\n+/g, " ").trim();
 
-    // 5. Save to Database
+    // 5. Save resume to Database
     await db.userPreferences.upsert({
       where: { userId: user.id },
       create: {
@@ -57,10 +54,18 @@ export async function uploadResume(formData: FormData) {
       }
     });
 
+    // ────────────────────────────────────────────
+    // 6. NEW: Generate Question Bank from Resume
+    // ────────────────────────────────────────────
+    console.log("📋 Generating question bank from resume...");
+    const questions = await generateQuestionBank(user.id, extractedText);
+    await saveQuestionBank(user.id, questions);
+    console.log("✅ Question bank ready!");
+
   } catch (error) {
-    console.error("Resume parsing error:", error);
+    console.error("Resume processing error:", error);
   }
 
-  // 6. Redirect to Interview
+  // 7. Redirect to Interview
   redirect("/interview");
 }

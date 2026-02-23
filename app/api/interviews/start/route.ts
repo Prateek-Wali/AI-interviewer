@@ -15,7 +15,7 @@ export async function POST(request: Request) {
     const body = await request.json();
     const { type, difficulty, targetDuration } = body;
 
-    // --- 🛡️ SAFETY FIX: ENSURE USER EXISTS ---
+    // --- Ensure user exists in DB ---
     await db.user.upsert({
       where: { id: user.id },
       update: { email: user.email },
@@ -26,33 +26,46 @@ export async function POST(request: Request) {
       },
     });
 
-    // 2. Fetch user preferences (safely handle if they don't exist)
+    // 2. Fetch user preferences
     const userPrefs = await db.userPreferences.findUnique({
       where: { userId: user.id }
     });
 
-    // 3. Create interview session
+    // 3. Fetch pre-generated questions from QuestionBank
+    const questions = await db.questionBank.findMany({
+      where: { userId: user.id },
+      orderBy: { createdAt: "asc" },
+    });
+
+    console.log(`📋 Found ${questions.length} pre-generated questions for user`);
+
+    // 4. Create interview session
     const interview = await db.interview.create({
       data: {
         userId: user.id,
-        type: type || "TECHNICAL",
+        type: type || "BEHAVIORAL",
         difficulty: difficulty || "Medium",
         targetDuration: targetDuration || 1800,
         status: "IN_PROGRESS"
       }
     });
 
-    // 4. Generate system prompt
-    const systemPrompt = generateSystemPrompt(userPrefs, type, difficulty);
+    // 5. Generate SLIM system prompt (no resume, just questions)
+    const systemPrompt = generateSlimPrompt(questions, userPrefs, type);
 
     return NextResponse.json({
       success: true,
       interviewId: interview.id,
       systemPrompt,
+      questions: questions.map(q => ({
+        id: q.id,
+        text: q.questionText,
+        category: q.category,
+        context: q.context,
+      })),
       userContext: {
         targetRole: userPrefs?.targetRole || "General",
         experienceLevel: userPrefs?.experienceLevel || "Entry",
-        resumeSummary: userPrefs?.resumeText?.substring(0, 100) + "..."
       }
     });
 
@@ -65,51 +78,43 @@ export async function POST(request: Request) {
   }
 }
 
-// --- UPDATED PROMPT GENERATOR ---
-function generateSystemPrompt(userPrefs: any, type: string, difficulty: string) {
+// ─────────────────────────────────────────────────
+// SLIM PROMPT — No resume, just a question script
+// ─────────────────────────────────────────────────
+
+function generateSlimPrompt(
+  questions: { questionText: string; category: string; context: string | null }[],
+  userPrefs: any,
+  type: string
+) {
   const roleContext = userPrefs?.targetRole || "Software Engineer";
-  const experienceLevel = userPrefs?.experienceLevel || "Entry Level";
 
-  // Resume Context
-  const resumeContext = userPrefs?.resumeText
-    ? `CANDIDATE RESUME:\n"${userPrefs.resumeText.substring(0, 10000)}"`
-    : "No resume provided.";
+  // Build numbered question list
+  const questionList = questions
+    .map((q, i) => `${i + 1}. "${q.questionText}" [Category: ${q.category}]${q.context ? ` (Context: ${q.context})` : ""}`)
+    .join("\n");
 
-  return `You are "Alex", a senior software engineer conducting a strict ${type?.toLowerCase() || 'behavioral'} interview for a ${roleContext} position.
-  
-  USER CONTEXT:
-  - Target Role: ${roleContext}
-  - Experience Level: ${experienceLevel}
-  ${resumeContext}
-  
---- CRITICAL INSTRUCTIONS ---
+  // Fallback if no questions were generated
+  const questionSection = questions.length > 0
+    ? `YOUR PREPARED QUESTIONS (ask in order):\n${questionList}`
+    : `No pre-generated questions found. Ask general ${type?.toLowerCase() || 'behavioral'} interview questions.`;
 
-  PHASE 1: THE QUALITY GATE (ALWAYS APPLY THIS)
-  Before moving to a new topic, you MUST evaluate the candidate's last answer.
-  - **IF THE ANSWER IS LAZY (e.g., "Yes", "I did that", "It was good"):**
-    - STOP. Do not move on.
-    - Call them out professionally. Example: "Could you elaborate? 'Yes' doesn't give me much insight into your process." or "I need more detail than that. Walk me through the specifics."
-  - **IF THE ANSWER IS VAGUE:**
-    - Drill down immediately. "How exactly did you implement that?" or "What specific metrics improved?"
-  - **ONLY** move to the next question if they have provided a substantive, multi-sentence answer.
+  return `You are "Alex", a senior interviewer conducting a ${type?.toLowerCase() || 'behavioral'} interview for a ${roleContext} position.
 
-  PHASE 2: THE INTERVIEW FLOW
-  1. **IMMIDIATLY** ask them questions on the projects that they have on their resume.
+You have a prepared list of questions. Your ONLY job is to ask them and evaluate answers.
 
-  2. **Intro:** Briefly introduce yourself as Alex. Ask: "Tell me about yourself."
+--- RULES ---
 
-  3. **Resume Deep Dive (The Core):**
-     - Grill them on specific technologies listed.
-     - Ask *why* they chose technology X over Y.
-     - Challenge their claims. If they list "Expert in SQL", ask a hard optimization question.
+1. INTRO: Briefly introduce yourself as Alex. Then go straight to Question 1.
+2. ASK IN ORDER: Ask questions one at a time, in the numbered order below.
+3. QUALITY GATE: After each answer:
+   - If the answer is LAZY (e.g., "Yes", "I did that"): Push back ONCE. Example: "I need more detail than that. Walk me through the specifics."
+   - If the answer is VAGUE: Drill down ONCE. Example: "How exactly did you implement that?"
+   - If they give a substantive answer: Move to the next question.
+4. PACING: If the user pauses for 3-4 seconds, wait. If silent for >7 seconds, ask "Are you still there?"
+5. WRAP UP: After the last question, say: "That wraps up our interview. Thanks for your time today."
 
-  4. **Behavioral Friction:**
-     - Ask: "Describe a time a teammate disagreed with you. How did you handle it?"
-     - If they give a generic "we talked it out" answer, push back: "That sounds too easy. Give me a specific example where there was real conflict."
+${questionSection}
 
-  PHASE 3: SILENCE & PACING 
-  - If the user pauses for 3-4 seconds, **WAIT**. Do not interrupt. They are thinking.
-  - If they are silent for >7 seconds, ask: "Are you there?"
-  
-  Begin the interview now by introducing yourself.`;
+Begin by introducing yourself and asking Question 1.`;
 }
