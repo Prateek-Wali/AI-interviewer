@@ -25,6 +25,7 @@ model User {
   // Relations
   interviews      Interview[]
   userPreferences UserPreferences?
+  questionBank    QuestionBank[]
   
   // OPTIONAL: Map this table to a specific name if you want
   // @@map("users") 
@@ -147,6 +148,25 @@ model Analysis {
   createdAt         DateTime    @default(now())
   
   @@index([interviewId])
+}
+
+// ============================================
+// PRE-GENERATED QUESTION BANK
+// ============================================
+
+model QuestionBank {
+  id             String   @id @default(cuid())
+  userId         String
+  questionText   String   @db.Text
+  category       String   // "resume_deep_dive", "behavioral", "situational"
+  context        String?  @db.Text  // Why this Q was generated (e.g. "Based on React project")
+  difficulty     String   @default("Medium")
+  used           Boolean  @default(false)
+
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt      DateTime @default(now())
+
+  @@index([userId])
 }
 
 // ============================================

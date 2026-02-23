@@ -9,39 +9,44 @@ export function useGeminiLive() {
     const [isSpeaking, setIsSpeaking] = useState(false);
     const [volume, setVolume] = useState(0);
 
-    // --- NEW: Tracking IDs & Transcripts ---
+    // --- Tracking IDs & Transcripts ---
     const [interviewId, setInterviewId] = useState<string | null>(null);
     const [currentQuestionId, setCurrentQuestionId] = useState<string | null>(null);
     const userTranscriptRef = useRef<string>("");
     const responseStartTimeRef = useRef<number>(0);
 
-    // Refs (Keep exact same names as before)
+    // Ref mirrors for values accessed inside WebSocket callbacks (avoids stale closures)
+    const interviewIdRef = useRef<string | null>(null);
+    const currentQuestionIdRef = useRef<string | null>(null);
+
+    // Refs
     const wsRef = useRef<WebSocket | null>(null);
     const audioContextRef = useRef<AudioContext | null>(null);
     const inputSourceRef = useRef<MediaStreamAudioSourceNode | null>(null);
-    const processorRef = useRef<ScriptProcessorNode | null>(null);
+    const workletNodeRef = useRef<AudioWorkletNode | null>(null);
     const nextStartTimeRef = useRef<number>(0);
     const recognitionRef = useRef<any>(null);
+    const isSpeakingRef = useRef<boolean>(false); // Track AI speaking state for audio gating
+    const volumeThrottleRef = useRef<number>(0);   // Throttle volume updates
+    const micStreamRef = useRef<MediaStream | null>(null);
 
     // --- DATABASE HELPERS ---
 
     // 1. Save Question (We call this when AI finishes speaking)
     const saveQuestionToDB = async (intId: string) => {
-        // Since we are in "Audio Only" mode to prevent bugs, we save a generic placeholder
-        // or we can update this later to capture the real text safely.
-        // For now, let's just create the record so we can attach the Answer to it.
         try {
             const res = await fetch(`/api/interviews/${intId}/questions`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    questionText: "AI Question (Audio)", // Placeholder to ensure DB record exists
+                    questionText: "AI Question (Audio)",
                     questionType: "Technical"
                 })
             });
             const data = await res.json();
             if (data.questionId) {
                 setCurrentQuestionId(data.questionId);
+                currentQuestionIdRef.current = data.questionId;
                 console.log("✅ Question Record Created:", data.questionId);
             }
         } catch (err) {
@@ -51,13 +56,14 @@ export function useGeminiLive() {
 
     // 2. Save Answer (We call this when User stops speaking)
     const saveAnswerToDB = async (qId: string, text: string) => {
-        if (!interviewId || !text.trim()) return;
+        const intId = interviewIdRef.current;
+        if (!intId || !text.trim()) return;
 
         const duration = (Date.now() - responseStartTimeRef.current) / 1000;
         console.log("💾 Saving Answer:", text);
 
         try {
-            await fetch(`/api/interviews/${interviewId}/questions/${qId}`, {
+            await fetch(`/api/interviews/${intId}/questions/${qId}`, {
                 method: "PATCH",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
@@ -105,17 +111,21 @@ export function useGeminiLive() {
         if (recognitionRef.current) {
             recognitionRef.current.stop();
             // If we captured text, save it now
-            if (currentQuestionId && userTranscriptRef.current.trim()) {
-                saveAnswerToDB(currentQuestionId, userTranscriptRef.current);
+            const qId = currentQuestionIdRef.current;
+            if (qId && userTranscriptRef.current.trim()) {
+                saveAnswerToDB(qId, userTranscriptRef.current);
                 userTranscriptRef.current = "";
             }
         }
     };
 
 
-    // --- CONNECT (Restored to "Audio Only" config) ---
+    // --- CONNECT ---
     const connect = useCallback((systemInstruction: string, id?: string) => {
-        if (id) setInterviewId(id);
+        if (id) {
+            setInterviewId(id);
+            interviewIdRef.current = id;
+        }
 
         if (!systemInstruction || systemInstruction.trim() === "") {
             console.error("❌ ABORTING: No system instructions.");
@@ -136,7 +146,6 @@ export function useGeminiLive() {
                     model: "models/gemini-2.5-flash-native-audio-preview-12-2025",
                     system_instruction: { parts: [{ text: systemInstruction }] },
                     generation_config: {
-                        // REVERTED TO AUDIO ONLY (This fixes the AI silence issue)
                         response_modalities: ["AUDIO"],
                         speech_config: {
                             voice_config: { prebuilt_voice_config: { voice_name: "Puck" } }
@@ -183,7 +192,7 @@ export function useGeminiLive() {
     }, []);
 
 
-    // --- RECORDING (Your original code) ---
+    // --- RECORDING (Optimized with AudioWorkletNode) ---
     const startRecording = useCallback(async () => {
         if (!audioContextRef.current) {
             audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
@@ -194,36 +203,68 @@ export function useGeminiLive() {
 
         try {
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            micStreamRef.current = stream;
             inputSourceRef.current = audioContextRef.current.createMediaStreamSource(stream);
-            processorRef.current = audioContextRef.current.createScriptProcessor(4096, 1, 1);
 
-            processorRef.current.onaudioprocess = (e) => {
-                const inputData = e.inputBuffer.getChannelData(0);
+            // ✅ FIX 1: Use AudioWorkletNode instead of deprecated ScriptProcessorNode
+            try {
+                await audioContextRef.current.audioWorklet.addModule('/audio-processor.js');
+                const workletNode = new AudioWorkletNode(audioContextRef.current, 'audio-capture-processor');
+                workletNodeRef.current = workletNode;
 
-                let sum = 0;
-                for (let i = 0; i < inputData.length; i++) sum += inputData[i] * inputData[i];
-                setVolume(Math.sqrt(sum / inputData.length));
+                workletNode.port.onmessage = (event) => {
+                    if (event.data.type === 'audio') {
+                        handleAudioData(event.data.buffer);
+                    }
+                };
 
-                const downsampled = downsampleTo16k(inputData, audioContextRef.current!.sampleRate);
-                const pcmData = floatTo16BitPCM(downsampled);
-                const base64Data = btoa(String.fromCharCode(...new Uint8Array(pcmData.buffer)));
+                inputSourceRef.current.connect(workletNode);
+                workletNode.connect(audioContextRef.current.destination);
+                console.log("✅ AudioWorkletNode connected (off main thread)");
+            } catch (workletError) {
+                // Fallback to ScriptProcessorNode if AudioWorklet not supported
+                console.warn("⚠️ AudioWorklet not supported, falling back to ScriptProcessor", workletError);
+                const processor = audioContextRef.current.createScriptProcessor(2048, 1, 1);
 
-                if (wsRef.current?.readyState === WebSocket.OPEN) {
-                    const msg = {
-                        realtime_input: {
-                            media_chunks: [{ mime_type: "audio/pcm", data: base64Data }]
-                        }
-                    };
-                    wsRef.current.send(JSON.stringify(msg));
-                }
-            };
+                processor.onaudioprocess = (e) => {
+                    handleAudioData(e.inputBuffer.getChannelData(0));
+                };
 
-            inputSourceRef.current.connect(processorRef.current);
-            processorRef.current.connect(audioContextRef.current.destination);
+                inputSourceRef.current.connect(processor);
+                processor.connect(audioContextRef.current.destination);
+            }
         } catch (err) {
             console.error("Mic Error:", err);
         }
     }, []);
+
+    // Shared audio handling (used by both Worklet and fallback)
+    const handleAudioData = (inputData: Float32Array) => {
+        // ✅ FIX 3: Throttle volume updates to ~3fps instead of every frame
+        const now = Date.now();
+        if (now - volumeThrottleRef.current > 300) {
+            let sum = 0;
+            for (let i = 0; i < inputData.length; i++) sum += inputData[i] * inputData[i];
+            setVolume(Math.sqrt(sum / inputData.length));
+            volumeThrottleRef.current = now;
+        }
+
+        // ✅ FIX 4: Don't send audio while AI is speaking (audio gating)
+        if (isSpeakingRef.current) return;
+
+        const downsampled = downsampleTo16k(inputData, audioContextRef.current?.sampleRate || 48000);
+        const pcmData = floatTo16BitPCM(downsampled);
+        const base64Data = btoa(String.fromCharCode(...new Uint8Array(pcmData.buffer)));
+
+        if (wsRef.current?.readyState === WebSocket.OPEN) {
+            const msg = {
+                realtime_input: {
+                    media_chunks: [{ mime_type: "audio/pcm", data: base64Data }]
+                }
+            };
+            wsRef.current.send(JSON.stringify(msg));
+        }
+    };
 
     // --- PLAYBACK (With Interruption Logic) ---
     const scheduleAudioChunk = (base64Audio: string) => {
@@ -231,6 +272,9 @@ export function useGeminiLive() {
         if (recognitionRef.current) {
             stopSpeechRecognition();
         }
+
+        // ✅ FIX 4: Mark AI as speaking (gate mic audio)
+        isSpeakingRef.current = true;
 
         if (!audioContextRef.current) return;
         const binaryString = window.atob(base64Audio);
@@ -260,6 +304,8 @@ export function useGeminiLive() {
         source.onended = () => {
             if (audioContextRef.current && audioContextRef.current.currentTime >= nextStartTimeRef.current - 0.1) {
                 setIsSpeaking(false);
+                // ✅ FIX 4: Ungate mic when AI finishes speaking
+                isSpeakingRef.current = false;
             }
         };
     };
@@ -267,7 +313,10 @@ export function useGeminiLive() {
     const disconnect = useCallback(() => {
         wsRef.current?.close();
         inputSourceRef.current?.disconnect();
-        processorRef.current?.disconnect();
+        workletNodeRef.current?.disconnect();
+        if (micStreamRef.current) {
+            micStreamRef.current.getTracks().forEach(t => t.stop());
+        }
         audioContextRef.current?.close();
         if (recognitionRef.current) recognitionRef.current.stop();
         setIsConnected(false);
@@ -276,7 +325,7 @@ export function useGeminiLive() {
     return { connect, disconnect, startRecording, isConnected, isSpeaking, volume };
 }
 
-// --- UTILS (Unchanged) ---
+// --- UTILS ---
 function downsampleTo16k(samples: Float32Array, sampleRate: number): Float32Array {
     if (sampleRate === 16000) return samples;
     const ratio = sampleRate / 16000;

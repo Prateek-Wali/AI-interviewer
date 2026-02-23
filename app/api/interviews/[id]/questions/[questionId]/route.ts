@@ -3,19 +3,20 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { updateQuestionResponse } from "@/lib/db/interview-helpers";
+import { evaluateAnswer } from "@/lib/gemini";
+import { db } from "@/lib/prisma";
 
 /**
  * PATCH /api/interviews/[id]/questions/[questionId]
- * * Called when user finishes answering a question.
- * Updates the question record with the response and audio metrics.
+ * Called when user finishes answering a question.
+ * Saves the response, responds immediately, then evaluates in background.
  */
 export async function PATCH(
   request: NextRequest,
-  // 1. FIX: Type 'params' as a Promise
   { params }: { params: Promise<{ id: string; questionId: string }> }
 ) {
   try {
-    // 2. Verify user is authenticated
+    // 1. Verify user is authenticated
     const supabase = await createClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 
@@ -26,10 +27,10 @@ export async function PATCH(
       );
     }
 
-    // 3. FIX: Await params to get the IDs safely
+    // 2. Get IDs from params
     const { questionId } = await params;
 
-    // 4. Parse request body
+    // 3. Parse request body
     const body = await request.json();
     const {
       userResponse,
@@ -43,7 +44,7 @@ export async function PATCH(
       confidenceScore,
     } = body;
 
-    // 5. Validate required fields
+    // 4. Validate required fields
     if (!userResponse || typeof userResponse !== "string") {
       return NextResponse.json(
         { error: "userResponse is required and must be a string" },
@@ -58,7 +59,7 @@ export async function PATCH(
       );
     }
 
-    // 6. Update question with response and metrics
+    // 5. Save answer to DB immediately
     const updatedQuestion = await updateQuestionResponse(questionId, {
       userResponse,
       responseDuration,
@@ -71,7 +72,31 @@ export async function PATCH(
       confidenceScore,
     });
 
-    // 7. Return success
+    // 6. Fire-and-forget: evaluate answer in background
+    //    This does NOT block the response — the interview continues.
+    evaluateAnswer(
+      updatedQuestion.questionText,
+      userResponse,
+      updatedQuestion.questionType,
+      responseDuration
+    )
+      .then(async (evaluation) => {
+        // Update the question row with real scores
+        await db.question.update({
+          where: { id: questionId },
+          data: {
+            confidenceScore: evaluation.confidenceScore,
+            fillerWordCount: evaluation.fillerWordCount,
+            speakingRate: evaluation.communicationScore, // Repurposing speakingRate field for communication score
+          },
+        });
+        console.log(`✅ Background evaluation saved for question ${questionId}`);
+      })
+      .catch((err) => {
+        console.error(`❌ Background evaluation failed for ${questionId}:`, err);
+      });
+
+    // 7. Respond immediately — user keeps interviewing
     return NextResponse.json({
       success: true,
       question: updatedQuestion,
