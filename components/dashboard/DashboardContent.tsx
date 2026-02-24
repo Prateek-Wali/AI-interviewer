@@ -203,7 +203,7 @@ export default function DashboardContent({ firstName }: DashboardContentProps) {
           <div className="md:col-span-3 bg-white/60 backdrop-blur-md border border-slate-200 rounded-2xl p-6">
             <div className="flex items-center justify-between mb-5">
               <h3 className="text-base font-bold text-slate-900">Recent Interviews</h3>
-              <button className="text-xs text-blue-600 font-semibold hover:underline">View All</button>
+              <Link href="/dashboard/history" className="text-xs text-blue-600 font-semibold hover:underline">View All</Link>
             </div>
 
             {/* Empty State */}

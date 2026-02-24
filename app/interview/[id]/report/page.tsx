@@ -168,10 +168,13 @@ export default function ReportPage() {
         : "—";
 
     return (
-        <div className="min-h-screen relative bg-white">
-            {/* Background */}
+        <div className="min-h-screen relative">
+            {/* Background — Matches Dashboard */}
             <div className="fixed inset-0 -z-50 h-full w-full bg-white">
-                <div className="absolute h-full w-full bg-[linear-gradient(to_right,#f1f5f9_1px,transparent_1px),linear-gradient(to_bottom,#f1f5f9_1px,transparent_1px)] bg-[size:32px_32px]"></div>
+                <div className="absolute h-full w-full bg-[linear-gradient(to_right,#e2e8f0_1px,transparent_1px),linear-gradient(to_bottom,#e2e8f0_1px,transparent_1px)] bg-[size:24px_24px]"></div>
+                <div className="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] bg-blue-100/80 rounded-full mix-blend-multiply filter blur-[80px] opacity-70 animate-drift-slow"></div>
+                <div className="absolute bottom-[-10%] right-[-10%] w-[600px] h-[600px] bg-purple-100/80 rounded-full mix-blend-multiply filter blur-[80px] opacity-70 animate-drift-medium"></div>
+                <div className="absolute top-[40%] left-[40%] w-[400px] h-[400px] bg-cyan-50/80 rounded-full mix-blend-multiply filter blur-[80px] opacity-70 animate-drift-fast"></div>
             </div>
 
             <div className="flex h-screen">
@@ -179,7 +182,7 @@ export default function ReportPage() {
                 {/* ═══════════════════════════════ */}
                 {/* LEFT SIDEBAR                   */}
                 {/* ═══════════════════════════════ */}
-                <aside className="w-[280px] shrink-0 border-r border-slate-200 bg-white/80 backdrop-blur-sm flex flex-col">
+                <aside className="w-[280px] shrink-0 border-r border-slate-200 bg-white/10 backdrop-blur-md flex flex-col">
 
                     {/* Sidebar header */}
                     <div className="px-5 pt-6 pb-4 border-b border-slate-100">
