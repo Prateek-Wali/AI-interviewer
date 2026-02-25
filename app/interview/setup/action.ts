@@ -23,49 +23,48 @@ export async function uploadResume(formData: FormData) {
   // 3. Extract Text based on file type
   let extractedText = "";
 
-  try {
-    if (file.type === "application/pdf") {
-      const pdfParse = require("pdf-parse/lib/pdf-parse.js");
+  if (file.type === "application/pdf") {
+    const pdfParse = require("pdf-parse/lib/pdf-parse");
 
-      const arrayBuffer = await file.arrayBuffer();
-      const buffer = Buffer.from(arrayBuffer);
-      const data = await pdfParse(buffer);
-      extractedText = data.text;
-    } else if (file.type === "text/plain") {
-      extractedText = await file.text();
-    } else {
-      throw new Error("Only PDF or TXT files are supported");
-    }
-
-    // 4. Clean the text
-    extractedText = extractedText.replace(/\n+/g, " ").trim();
-
-    // 5. Save resume to Database
-    await db.userPreferences.upsert({
-      where: { userId: user.id },
-      create: {
-        userId: user.id,
-        resumeText: extractedText,
-        experienceLevel: "Entry",
-        targetRole: "Software Engineer"
-      },
-      update: {
-        resumeText: extractedText,
-      }
-    });
-
-    // ────────────────────────────────────────────
-    // 6. NEW: Generate Question Bank from Resume
-    // ────────────────────────────────────────────
-    console.log("📋 Generating question bank from resume...");
-    const questions = await generateQuestionBank(user.id, extractedText);
-    await saveQuestionBank(user.id, questions);
-    console.log("✅ Question bank ready!");
-
-  } catch (error) {
-    console.error("Resume processing error:", error);
+    const arrayBuffer = await file.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+    const data = await pdfParse(buffer);
+    extractedText = data.text;
+  } else if (file.type === "text/plain") {
+    extractedText = await file.text();
+  } else {
+    throw new Error("Only PDF or TXT files are supported");
   }
 
-  // 7. Redirect to Interview
+  // 4. Clean the text
+  extractedText = extractedText.replace(/\n+/g, " ").trim();
+
+  if (!extractedText || extractedText.length < 50) {
+    throw new Error("Could not extract enough text from the resume. Please try a different file.");
+  }
+
+  console.log(`📄 Resume parsed: ${extractedText.length} characters extracted`);
+
+  // 5. Save resume to Database
+  await db.userPreferences.upsert({
+    where: { userId: user.id },
+    create: {
+      userId: user.id,
+      resumeText: extractedText,
+      experienceLevel: "Entry",
+      targetRole: "Software Engineer"
+    },
+    update: {
+      resumeText: extractedText,
+    }
+  });
+
+  // 6. Generate Question Bank from Resume
+  console.log("📋 Generating question bank from resume...");
+  const questions = await generateQuestionBank(user.id, extractedText);
+  await saveQuestionBank(user.id, questions);
+  console.log(`✅ Question bank ready! ${questions.length} questions saved.`);
+
+  // 7. Redirect to Interview (only runs if everything above succeeded)
   redirect("/interview");
 }

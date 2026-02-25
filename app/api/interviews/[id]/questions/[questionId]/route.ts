@@ -3,7 +3,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { updateQuestionResponse } from "@/lib/db/interview-helpers";
-import { evaluateAnswer } from "@/lib/gemini";
+import { evaluateAnswer, classifyResponse } from "@/lib/gemini";
 import { db } from "@/lib/prisma";
 
 /**
@@ -59,7 +59,19 @@ export async function PATCH(
       );
     }
 
-    // 5. Save answer to DB immediately
+    // 5. Classify: is this a real answer or a meta-request (repeat/clarification)?
+    const isMetaRequest = await classifyResponse(userResponse);
+    if (isMetaRequest) {
+      console.log(`🔁 Meta-request detected for question ${questionId}, skipping save:`, userResponse);
+      return NextResponse.json({
+        success: true,
+        skipped: true,
+        reason: "meta_request",
+        message: "Response classified as a meta-request (repeat/clarification), not saved."
+      });
+    }
+
+    // 6. Save answer to DB immediately
     const updatedQuestion = await updateQuestionResponse(questionId, {
       userResponse,
       responseDuration,

@@ -39,6 +39,10 @@ export async function POST(request: Request) {
 
     console.log(`📋 Found ${questions.length} pre-generated questions for user`);
 
+    if (questions.length === 0) {
+      console.warn("⚠️ WARNING: QuestionBank is empty! The user may not have uploaded a resume, or resume processing failed. AI will fall back to generic questions.");
+    }
+
     // 4. Create interview session
     const interview = await db.interview.create({
       data: {
@@ -112,7 +116,8 @@ You have a prepared list of questions. Your ONLY job is to ask them and evaluate
    - If the answer is VAGUE: Drill down ONCE. Example: "How exactly did you implement that?"
    - If they give a substantive answer: Move to the next question.
 4. PACING: If the user pauses for 3-4 seconds, wait. If silent for >7 seconds, ask "Are you still there?"
-5. WRAP UP: After the last question, say: "That wraps up our interview. Thanks for your time today."
+5. REPEAT/CLARIFY: If the user asks you to repeat or clarify a question (e.g., "can you repeat that?", "what do you mean?", "I didn't catch that"), repeat or clarify the SAME question. Do NOT move to a new question. Do NOT treat their request as an answer.
+6. WRAP UP: After the last question, say: "That wraps up our interview. Thanks for your time today."
 
 ${questionSection}
 
