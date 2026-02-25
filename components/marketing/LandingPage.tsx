@@ -7,12 +7,6 @@ const LandingSection = () => {
             {/* -- CONTENT LAYER -- */}
             <div className="relative z-10 w-full max-w-5xl px-6 flex flex-col items-center text-center">
 
-                {/* 1. The Badge */}
-                <div className="mb-8 inline-flex items-center rounded-full border border-blue-200 bg-blue-50/50 backdrop-blur-sm px-3 py-1 text-sm font-medium text-blue-600">
-                    <span className="flex h-2 w-2 rounded-full bg-blue-500 mr-2 animate-pulse"></span>
-                    DevPrepAI v1.0
-                </div>
-
                 {/* 2. Main Headline */}
                 <h1 className="font-sans text-6xl md:text-8xl font-bold tracking-tight text-slate-900 mb-6 drop-shadow-sm">
                     Crack interviews <br />
@@ -23,7 +17,7 @@ const LandingSection = () => {
 
                 {/* 3. Subheadline */}
                 <p className="font-sans text-lg md:text-xl text-slate-600 mb-10 max-w-2xl leading-relaxed">
-                    The industry's first AI interviewer that simulates <span className="text-slate-900 font-semibold">high-stakes friction</span>. It doesn't just ask questions—it interrupts, challenges, and grades your composure.
+                    An AI interviewer that simulates <span className="text-slate-900 font-semibold">A real interview</span>. It doesn't just ask questions—it interrupts, challenges, and grades your response.
                 </p>
 
                 {/* 4. Action Buttons */}
