@@ -18,6 +18,7 @@ export function useGeminiLive() {
     // Ref mirrors for values accessed inside WebSocket callbacks (avoids stale closures)
     const interviewIdRef = useRef<string | null>(null);
     const currentQuestionIdRef = useRef<string | null>(null);
+    const questionAnsweredRef = useRef<boolean>(false);
 
     // Refs
     const wsRef = useRef<WebSocket | null>(null);
@@ -63,7 +64,7 @@ export function useGeminiLive() {
         console.log("💾 Saving Answer:", text);
 
         try {
-            await fetch(`/api/interviews/${intId}/questions/${qId}`, {
+            const res = await fetch(`/api/interviews/${intId}/questions/${qId}`, {
                 method: "PATCH",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
@@ -73,7 +74,14 @@ export function useGeminiLive() {
                     confidenceScore: 85
                 })
             });
-            console.log("✅ Answer Saved to DB");
+            const result = await res.json();
+            if (result.skipped) {
+                console.log("🔁 Server classified as meta-request, question stays unanswered");
+                // Don't mark as answered — next turnComplete will reuse the same question
+            } else {
+                questionAnsweredRef.current = true;
+                console.log("✅ Answer Saved to DB");
+            }
         } catch (err) {
             console.error("❌ Failed to save answer:", err);
         }
@@ -178,7 +186,14 @@ export function useGeminiLive() {
                 if (data.serverContent?.turnComplete) {
                     // AI finished speaking -> Save a Question Record
                     if (id) {
-                        saveQuestionToDB(id);
+                        // Only create a new question record if the previous one was answered
+                        // (If not answered, this is a repeat/clarification — reuse the same question)
+                        if (questionAnsweredRef.current || !currentQuestionIdRef.current) {
+                            saveQuestionToDB(id);
+                            questionAnsweredRef.current = false;
+                        } else {
+                            console.log("🔁 Reusing current question (previous unanswered — likely a repeat/clarification)");
+                        }
                         // Start listening to user
                         responseStartTimeRef.current = Date.now();
                         startSpeechRecognition();

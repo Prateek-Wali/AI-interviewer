@@ -6,17 +6,21 @@ import { uploadResume } from "./action";
 export default function SetupPage() {
   const [loading, setLoading] = useState(false);
   const [fileName, setFileName] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   // We wrap the server action to handle loading state on the client
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setLoading(true);
-    
-    const formData = new FormData(event.currentTarget);
-    await uploadResume(formData); // This will redirect on success
-    
-    // If we get here, it means there was an error or the redirect hasn't happened yet
-    // In a production app, we'd handle error returns here.
+    setError(null);
+
+    try {
+      const formData = new FormData(event.currentTarget);
+      await uploadResume(formData); // This will redirect on success
+    } catch (err: any) {
+      setError(err?.message || "Failed to process resume. Please try again.");
+      setLoading(false);
+    }
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -27,7 +31,7 @@ export default function SetupPage() {
 
   return (
     <div className="min-h-screen relative font-sans text-slate-900 flex items-center justify-center p-4">
-      
+
       {/* --- BACKGROUND (Matches your Dashboard) --- */}
       <div className="fixed inset-0 -z-50 h-full w-full bg-white">
         <div className="absolute h-full w-full bg-[linear-gradient(to_right,#f1f5f9_1px,transparent_1px),linear-gradient(to_bottom,#f1f5f9_1px,transparent_1px)] bg-[size:40px_40px]"></div>
@@ -37,7 +41,7 @@ export default function SetupPage() {
 
       {/* --- CARD UI --- */}
       <div className="w-full max-w-lg bg-white/80 backdrop-blur-xl border border-slate-200 shadow-xl rounded-3xl p-10 animate-in fade-in zoom-in-95 duration-500">
-        
+
         <div className="text-center mb-8">
           <div className="w-16 h-16 bg-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg shadow-blue-500/30">
             <span className="text-3xl">📄</span>
@@ -48,20 +52,26 @@ export default function SetupPage() {
           </p>
         </div>
 
+        {error && (
+          <div className="mb-4 p-3 rounded-lg bg-red-50 border border-red-200 text-red-600 text-sm font-medium">
+            {error}
+          </div>
+        )}
+
         <form onSubmit={handleSubmit} className="space-y-6">
-          
+
           <div className="relative group">
-            <input 
-              type="file" 
-              name="resume" 
+            <input
+              type="file"
+              name="resume"
               id="resume"
               accept=".pdf,.txt"
               onChange={handleFileChange}
               className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-              required 
+              required
             />
             <div className={`border-2 border-dashed rounded-2xl p-8 text-center transition-all ${fileName ? 'border-blue-500 bg-blue-50/50' : 'border-slate-300 hover:border-blue-400 hover:bg-slate-50'}`}>
-              
+
               {fileName ? (
                 <div className="text-blue-600 font-semibold flex items-center justify-center gap-2">
                   <span>✅</span> {fileName}
@@ -75,8 +85,8 @@ export default function SetupPage() {
             </div>
           </div>
 
-          <button 
-            type="submit" 
+          <button
+            type="submit"
             disabled={loading}
             className="w-full py-4 bg-slate-900 text-white font-bold rounded-xl hover:bg-black transition-all transform hover:scale-[1.02] shadow-xl disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >

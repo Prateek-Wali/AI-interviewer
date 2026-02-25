@@ -98,17 +98,28 @@ export async function saveQuestionBank(
 function buildPrompt(resumeText: string): string {
     return `You are an expert behavioral interview question designer. 
 
-Given the candidate's resume below, generate exactly 12 behavioral interview questions.
+Given the candidate's resume below, generate exactly 12 interview questions.
 
-RULES:
+CRITICAL RULES:
 1. Generate EXACTLY 12 questions — no more, no less.
-2. Questions should be tailored to the specific projects, skills, and experiences on the resume.
-3. Mix the categories as follows:
-   - 5 questions: "resume_deep_dive" — drill into specific projects, technologies, or claims on the resume
-   - 4 questions: "behavioral" — STAR-method questions about teamwork, conflict, leadership, failure
-   - 3 questions: "situational" — hypothetical scenarios relevant to their experience level
-4. Vary the difficulty: 3 Easy, 6 Medium, 3 Hard.
-5. For each question, include a "context" field explaining WHY you chose this question (e.g., "Candidate listed React expertise — testing depth of knowledge").
+2. **8 questions MUST be resume-specific** — each one MUST explicitly reference a specific project name, technology, company, role, or experience mentioned in the resume. The candidate should immediately recognize that you read their resume.
+3. **4 questions should be standard behavioral** — classic interview questions that could be asked to any candidate (e.g., "Tell me about a time you failed", "How do you handle tight deadlines?").
+4. Distribute the 8 resume-specific questions as:
+   - 5 questions: "resume_deep_dive" — drill into specific projects, technical decisions, or claims on the resume. Name the actual project or technology.
+   - 3 questions: "situational" — hypothetical scenarios that directly reference the candidate's specific tech stack or domain from the resume
+5. The 4 generic questions should all be category "behavioral" — classic STAR-method questions about teamwork, conflict, leadership, failure.
+6. Vary the difficulty: 3 Easy, 6 Medium, 3 Hard.
+7. For each question, include a "context" field explaining WHY you chose this question based on their resume (for resume-specific) or why it's important (for generic behavioral).
+
+EXAMPLES OF GOOD RESUME-SPECIFIC QUESTIONS:
+- "You listed a React dashboard project that handled real-time data. Walk me through the architecture decisions you made and why."
+- "I see you used PostgreSQL with Prisma in your DevPrepAI project. What were the tradeoffs of using an ORM vs raw SQL for this use case?"
+- "You mentioned leading a team of 4 at XYZ Corp. How did you handle task delegation and code reviews?"
+
+EXAMPLES OF BAD (GENERIC) QUESTIONS THAT SHOULD NOT COUNT AS RESUME-SPECIFIC:
+- "Tell me about a challenging project you worked on" (too vague, doesn't name anything)
+- "How do you approach debugging?" (could be asked to anyone)
+- "Describe your experience with web development" (doesn't reference specific resume content)
 
 CANDIDATE RESUME:
 """
@@ -322,4 +333,77 @@ Respond with ONLY a JSON object matching this schema:
     console.log(`✅ Report generated — Overall: ${report.overallScore}/100`);
 
     return report;
+}
+
+// ─────────────────────────────────────────────
+// Response Classification (Meta-Request Detection)
+// ─────────────────────────────────────────────
+
+/**
+ * Classifies whether a user's speech is a real interview answer or a meta-request
+ * (e.g., "repeat the question", "what do you mean by X?", "I didn't catch that").
+ *
+ * Returns `true` if the response is a meta-request (should NOT be saved as an answer).
+ * Returns `false` if the response is a real answer (should be saved).
+ *
+ * Short-circuits for long responses (>50 words) — those are always real answers.
+ */
+export async function classifyResponse(userResponse: string): Promise<boolean> {
+    // Short-circuit: long responses are always real answers
+    const wordCount = userResponse.trim().split(/\s+/).length;
+    if (wordCount > 50) {
+        console.log("⚡ Classification short-circuit: long response, treating as answer");
+        return false;
+    }
+
+    if (!GEMINI_API_KEY) {
+        console.warn("⚠️ No API key for classification, defaulting to answer");
+        return false;
+    }
+
+    try {
+        const prompt = `You are classifying a user's speech during a job interview.
+
+Is the following text a DIRECT ANSWER to an interview question, or is it a META-REQUEST?
+
+META-REQUEST means any of these:
+- Asking the interviewer to repeat the question
+- Asking for clarification about what was asked
+- Expressing confusion about the question
+- Requesting more time to think
+- Saying they didn't hear or understand
+- Any response that is NOT an attempt to answer the interview question
+
+DIRECT ANSWER means the user is actually attempting to respond to the interview question, even if the answer is short, vague, or incomplete.
+
+User's speech: "${userResponse}"
+
+Respond with ONLY one word: "ANSWER" or "META_REQUEST".`;
+
+        const response = await fetch(GEMINI_REST_URL, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                contents: [{ parts: [{ text: prompt }] }],
+                generationConfig: {
+                    temperature: 0,
+                },
+            }),
+        });
+
+        if (!response.ok) {
+            console.warn("⚠️ Classification API error, defaulting to answer");
+            return false;
+        }
+
+        const data = await response.json();
+        const result = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "";
+        const isMeta = result.includes("META_REQUEST");
+
+        console.log(`🏷️ Response classified as: ${result} (${isMeta ? "will skip" : "will save"})`);
+        return isMeta;
+    } catch (err) {
+        console.error("❌ Classification error, defaulting to answer:", err);
+        return false;
+    }
 }
