@@ -172,14 +172,14 @@ export default function HistoryPage() {
                 {/* SECTION 1: PAGE HEADER              */}
                 {/* ─────────────────────────────────── */}
                 <section className="animate-slide-down">
-                    <div className="flex items-center gap-3 mb-4">
+                    <div className="flex items-center gap-4 mb-5">
                         <Link href="/dashboard">
-                            <button className="w-8 h-8 rounded-full bg-white/60 backdrop-blur-md border border-slate-200 flex items-center justify-center hover:bg-white hover:border-blue-200 transition-all">
-                                <ArrowLeft className="w-4 h-4 text-slate-500" />
+                            <button className="w-10 h-10 rounded-full bg-white shadow-sm border border-slate-300 flex items-center justify-center hover:bg-slate-50 hover:border-slate-400 transition-all">
+                                <ArrowLeft className="w-5 h-5 text-slate-800" strokeWidth={2.5} />
                             </button>
                         </Link>
-                        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 border border-blue-200 text-blue-600 text-xs font-bold uppercase tracking-wider">
-                            <Sparkles className="w-3 h-3" />
+                        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 border border-blue-200 text-blue-700 text-xs font-bold uppercase tracking-wider shadow-sm">
+                            <Sparkles className="w-4 h-4" />
                             History
                         </div>
                     </div>
@@ -218,7 +218,7 @@ export default function HistoryPage() {
                         <p className="text-xs text-slate-500 max-w-xs text-center mb-5">{error}</p>
                         <button
                             onClick={() => window.location.reload()}
-                            className="px-5 py-2 bg-slate-900 text-white text-xs font-bold rounded-full hover:bg-black transition-all hover:shadow-lg"
+                            className="px-6 py-2.5 bg-slate-900 border border-transparent text-white text-sm font-bold rounded-full hover:bg-black transition-all hover:shadow-lg shadow-md"
                         >
                             Try Again
                         </button>
@@ -238,7 +238,7 @@ export default function HistoryPage() {
                             Complete your first AI interview session and your history, scores, and detailed feedback will appear here.
                         </p>
                         <Link href="/interview/setup">
-                            <button className="px-6 py-3 bg-slate-900 text-white text-sm font-bold rounded-full hover:bg-black transition-all hover:shadow-xl shadow-lg">
+                            <button className="px-7 py-3.5 bg-slate-900 border border-transparent text-white text-sm font-bold rounded-full hover:bg-black transition-all hover:shadow-xl shadow-lg">
                                 Start First Interview
                             </button>
                         </Link>

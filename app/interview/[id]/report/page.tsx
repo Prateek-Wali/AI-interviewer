@@ -144,7 +144,7 @@ export default function ReportPage() {
                     <h2 className="text-lg font-bold text-slate-900 mb-1">Report unavailable</h2>
                     <p className="text-sm text-slate-500 mb-4">{error || "Could not load interview data."}</p>
                     <Link href="/dashboard">
-                        <button className="px-5 py-2 bg-slate-900 text-white text-sm font-bold rounded-full">
+                        <button className="px-6 py-2.5 bg-slate-900 border border-transparent shadow-md text-white text-sm font-bold rounded-full hover:bg-black transition-all">
                             Back to Dashboard
                         </button>
                     </Link>
@@ -251,16 +251,16 @@ export default function ReportPage() {
                     </nav>
 
                     {/* Sidebar actions */}
-                    <div className="p-4 border-t border-slate-100 space-y-2">
+                    <div className="p-4 border-t border-slate-100 space-y-3">
                         <Link href="/dashboard" className="block">
-                            <button className="w-full py-2.5 text-sm font-semibold text-slate-700 border border-slate-200 rounded-xl hover:bg-slate-50 transition-all flex items-center justify-center gap-2">
-                                <ArrowLeft className="w-4 h-4" />
+                            <button className="w-full py-2.5 text-sm font-bold text-slate-800 bg-white border-2 border-slate-200 shadow-sm rounded-xl hover:bg-slate-50 hover:border-slate-300 transition-all flex items-center justify-center gap-2">
+                                <ArrowLeft className="w-4 h-4 text-slate-800" strokeWidth={2.5} />
                                 Back to Dashboard
                             </button>
                         </Link>
                         <Link href="/interview/setup" className="block">
-                            <button className="w-full py-2.5 text-sm font-bold text-white bg-slate-900 rounded-xl hover:bg-black transition-all flex items-center justify-center gap-2">
-                                <RotateCcw className="w-4 h-4" />
+                            <button className="w-full py-2.5 text-sm font-bold text-white bg-slate-900 shadow-md rounded-xl hover:bg-black transition-all flex items-center justify-center gap-2">
+                                <RotateCcw className="w-4 h-4" strokeWidth={2.5} />
                                 Practice Again
                             </button>
                         </Link>
@@ -276,11 +276,20 @@ export default function ReportPage() {
 
                             {/* Header */}
                             <section className={showReport ? "animate-report-reveal report-delay-1" : "opacity-0"}>
-                                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 border border-blue-200 text-blue-600 text-xs font-bold uppercase tracking-wider mb-3">
-                                    <CheckCircle2 className="w-3 h-3" />
-                                    Interview Complete
+                                <div className="flex items-center gap-4 mb-5 relative">
+                                    <div className="absolute -left-12 sm:-left-24 lg:-left-39 xl:-left-110">
+                                        <Link href="/dashboard/history">
+                                            <button className="w-10 h-10 rounded-full bg-white shadow-sm border border-slate-300 flex items-center justify-center hover:bg-slate-50 hover:border-slate-400 transition-all">
+                                                <ArrowLeft className="w-5 h-5 text-slate-800" strokeWidth={2.5} />
+                                            </button>
+                                        </Link>
+                                    </div>
+                                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 text-blue-700 border border-blue-200 text-xs font-bold uppercase tracking-wider shadow-sm md:ml-[-12px]">
+                                        <CheckCircle2 className="w-4 h-4" />
+                                        Interview Complete
+                                    </div>
                                 </div>
-                                <div className="text-sm text-slate-400 font-medium">
+                                <div className="text-sm text-slate-500 font-semibold md:ml-[-8px]">
                                     {interviewDate} · {totalDuration}
                                 </div>
                             </section>
