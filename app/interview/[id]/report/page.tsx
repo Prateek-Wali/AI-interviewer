@@ -276,20 +276,18 @@ export default function ReportPage() {
 
                             {/* Header */}
                             <section className={showReport ? "animate-report-reveal report-delay-1" : "opacity-0"}>
-                                <div className="flex items-center gap-4 mb-5 relative">
-                                    <div className="absolute -left-12 sm:-left-24 lg:-left-39 xl:-left-110">
-                                        <Link href="/dashboard/history">
-                                            <button className="w-10 h-10 rounded-full bg-white shadow-sm border border-slate-300 flex items-center justify-center hover:bg-slate-50 hover:border-slate-400 transition-all">
-                                                <ArrowLeft className="w-5 h-5 text-slate-800" strokeWidth={2.5} />
-                                            </button>
-                                        </Link>
-                                    </div>
-                                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 text-blue-700 border border-blue-200 text-xs font-bold uppercase tracking-wider shadow-sm md:ml-[-12px]">
+                                <div className="flex items-center gap-4 mb-5">
+                                    <Link href="/dashboard/history">
+                                        <button className="w-10 h-10 rounded-full bg-white shadow-sm border border-slate-300 flex items-center justify-center hover:bg-slate-50 hover:border-slate-400 transition-all -ml-4 md:-ml-60">
+                                            <ArrowLeft className="w-5 h-5 text-slate-800" strokeWidth={2.5} />
+                                        </button>
+                                    </Link>
+                                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 text-blue-700 border border-blue-200 text-xs font-bold uppercase tracking-wider shadow-sm">
                                         <CheckCircle2 className="w-4 h-4" />
                                         Interview Complete
                                     </div>
                                 </div>
-                                <div className="text-sm text-slate-500 font-semibold md:ml-[-8px]">
+                                <div className="text-sm text-slate-500 font-semibold">
                                     {interviewDate} · {totalDuration}
                                 </div>
                             </section>
