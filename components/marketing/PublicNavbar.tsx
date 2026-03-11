@@ -21,11 +21,11 @@ export default function PublicNavbar() {
       {/* Logo */}
       <Link href="/" className="flex items-center gap-2">
         <span className="text-2xl">⚡</span>
-        <span className="font-bold text-xl text-slate-900">DevPrepAI</span>
+        <span className="font-mona-sans font-bold text-xl text-gh-text-light tracking-tight">DevPrepAI</span>
       </Link>
 
       {/* Center Links (Updated) */}
-      <div className="hidden md:flex gap-8 text-sm font-medium text-slate-600">
+      <div className="hidden md:flex gap-8 text-sm font-medium text-gh-muted tracking-normal normal-case">
         <Link href="/" className="hover:text-blue-600 transition-colors">Home</Link>
         <Link href="/pricing" className="hover:text-blue-600 transition-colors">Pricing</Link>
       </div>
@@ -33,7 +33,7 @@ export default function PublicNavbar() {
       {/* Right Action Button */}
       <div className="flex gap-4">
         <Link href="/login">
-          <button className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold px-5 py-2.5 rounded-full transition-all shadow-md shadow-blue-500/20">
+          <button className="border border-gh-border text-gh-text-light hover:bg-slate-50 text-sm font-medium px-4 py-2 rounded-md transition-all">
             Login / Sign Up
           </button>
         </Link>
