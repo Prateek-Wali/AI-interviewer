@@ -27,7 +27,7 @@ export default async function DashboardLayout({
         <div className="flex items-center gap-8">
           <Link href="/dashboard" className="flex items-center gap-2">
             <span className="text-2xl">⚡</span>
-            <span className="font-bold text-xl text-slate-900 hidden sm:block tracking-tight">DevPrepAI</span>
+            <span className="font-bold text-xl text-slate-900 hidden sm:block tracking-tight">Lintrvw</span>
           </Link>
 
           <div className="hidden md:flex gap-1 text-sm font-medium text-slate-500">

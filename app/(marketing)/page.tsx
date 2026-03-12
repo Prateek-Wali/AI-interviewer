@@ -25,16 +25,16 @@ export default function Home() {
                     {/* The Hook */}
                     <div className="max-w-3xl space-y-6">
                         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-100 border border-gh-border text-gh-muted text-xs font-medium tracking-wide">
-                            <span>🚀 Built for the 2025 Job Market</span>
+                            <span>Built for the 2026 Job Market</span>
                         </div>
                         <h2 className="font-mona-sans font-semibold text-4xl md:text-5xl tracking-tightest leading-tight text-gh-text-light">
-                            Interviews can be overwhelming. <br />
+                            The interview process can be overwhelming. <br />
                             <span className="text-gh-accent">
-                                DevPrepAI can help.
+                                Lintrvw can help.
                             </span>
                         </h2>
                         <p className="text-xl text-slate-600 max-w-2xl mx-auto">
-                            "LeetCode grinding" isn't enough anymore. You need to handle the heat.
+                            "LeetCode grinding" isn't enough anymore. You need to be able to communicate and tell your story.
                         </p>
                     </div>
 
@@ -51,7 +51,7 @@ export default function Home() {
                                     <br />
                                     The market is unforgiving. If you are unprepared for that call, you're back to square one.
                                     <br /><br />
-                                    <span className="font-mona-sans font-semibold text-white tracking-tight text-xl">DevPrepAI is your safety net.</span> Fail here, safely, and learn from your mistakes.
+                                    <span className="font-mona-sans font-semibold text-white tracking-tight text-xl">Lintrvw is your safety net.</span> Fail here, safely, and learn from your mistakes.
                                 </p>
                             </div>
                         </div>

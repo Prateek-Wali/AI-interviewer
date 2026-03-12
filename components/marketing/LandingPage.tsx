@@ -17,7 +17,7 @@ const LandingSection = () => {
 
                 {/* 3. Subheadline */}
                 <p className="font-inter font-normal text-lg tracking-normal text-gh-muted mb-10 max-w-2xl leading-[1.6]">
-                    An AI interviewer that simulates <span className="text-gh-text-light font-medium">a real interview</span>. It doesn't just ask questions—it interrupts, challenges, and grades your response.
+                    An AI interviewer that simulates <span className="text-gh-text-light font-medium">a real interview</span>. It doesn't just ask questions—it interrupts, challenges, and gives feedback on your response.
                 </p>
 
                 {/* 4. Action Buttons */}

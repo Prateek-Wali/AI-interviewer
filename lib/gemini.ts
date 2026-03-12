@@ -113,7 +113,7 @@ CRITICAL RULES:
 
 EXAMPLES OF GOOD RESUME-SPECIFIC QUESTIONS:
 - "You listed a React dashboard project that handled real-time data. Walk me through the architecture decisions you made and why."
-- "I see you used PostgreSQL with Prisma in your DevPrepAI project. What were the tradeoffs of using an ORM vs raw SQL for this use case?"
+- "I see you used PostgreSQL with Prisma in your Lintrvw project. What were the tradeoffs of using an ORM vs raw SQL for this use case?"
 - "You mentioned leading a team of 4 at XYZ Corp. How did you handle task delegation and code reviews?"
 
 EXAMPLES OF BAD (GENERIC) QUESTIONS THAT SHOULD NOT COUNT AS RESUME-SPECIFIC:
