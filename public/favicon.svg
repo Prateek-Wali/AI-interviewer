@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <!-- Dark Background -->
+  <rect width="32" height="32" rx="8" fill="#161b22"/>
+  <rect x="0.75" y="0.75" width="30.5" height="30.5" rx="7.25"
+        fill="none" stroke="#30363d" stroke-width="1.5"/>
+
+  <!-- "Li" monogram — L in red, i in grey -->
+  <text
+    x="50%" y="54%"
+    dominant-baseline="middle"
+    text-anchor="middle"
+    font-family="'JetBrains Mono', monospace"
+    font-weight="800"
+    font-size="16"
+    letter-spacing="-1"
+  >
+    <tspan fill="#f85149">L</tspan><tspan fill="#8b949e">i</tspan>
+  </text>
+</svg>

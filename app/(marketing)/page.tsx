@@ -34,7 +34,7 @@ export default function Home() {
                             </span>
                         </h2>
                         <p className="text-xl text-slate-600 max-w-2xl mx-auto">
-                            "LeetCode grinding" isn't enough anymore. You need to be able to communicate and tell your story.
+                            "LeetCode grinding" isn't enough anymore. You need to be able to communicate through your thought process.
                         </p>
                     </div>
 
@@ -63,7 +63,7 @@ export default function Home() {
                             </div>
                             <h3 className="font-mona-sans font-semibold tracking-tight text-xl mb-2 text-gh-text-light">No Generic Questions</h3>
                             <p className="text-slate-600">
-                                Our engine scans <span className="font-semibold text-slate-900">your resume</span>. We grill you on <em>your</em> projects and tech stack.
+                                Our engine scans <span className="font-semibold text-slate-900">your resume</span>. We ask you questions on <em>your</em> projects and tech stack.
                             </p>
                         </div>
 
@@ -98,9 +98,9 @@ export default function Home() {
                             <div>
                                 <h2 className="font-mona-sans font-semibold tracking-tight text-3xl mb-6 text-gh-text-light">The "Friction" Engine</h2>
                                 <p className="text-lg text-slate-600 mb-8">
-                                    Most AI interviewers are too nice. They nod and say "Good job."
+                                    Most AI interviewers just ask you the question and don't engage with what you reply with.
                                     <br />
-                                    <span className="font-semibold text-slate-900">Real senior engineers don't do that.</span>
+                                    <span className="font-semibold text-slate-900">Real interviews are interactive.</span>
                                 </p>
                                 <ul className="space-y-4">
                                     <li className="flex items-start gap-4 text-gh-muted font-inter">
