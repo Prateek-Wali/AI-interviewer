@@ -129,7 +129,7 @@ export default function InterviewSession() {
           </div>
           <h1 className="text-3xl font-bold text-slate-900 mb-3">Let's check your setup</h1>
           <p className="text-slate-500 mb-8">
-            DevPrepAI uses your camera to analyze confidence and body language.
+            Lintrvw uses your camera to analyze confidence and body language.
           </p>
           <button
             onClick={initializeMedia}
@@ -171,7 +171,7 @@ export default function InterviewSession() {
           </div>
 
           <span className="text-sm font-semibold text-slate-700 w-40 text-center truncate">
-            {isConnected ? (isSpeaking ? "DevPrepAI Speaking..." : "Listening...") : "Connecting..."}
+            {isConnected ? (isSpeaking ? "Lintrvw Speaking..." : "Listening...") : "Connecting..."}
           </span>
 
           {/* Timer */}

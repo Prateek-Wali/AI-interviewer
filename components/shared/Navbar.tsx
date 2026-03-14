@@ -12,7 +12,7 @@ const Navbar = () => {
           <span className="text-white font-bold text-lg font-sans">D</span>
         </div>
         <span className="text-lg font-bold text-slate-800 tracking-tight">
-          DevPrep<span className="text-blue-600">AI</span>
+          Lintrvw
         </span>
       </Link>
 

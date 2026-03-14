@@ -40,21 +40,15 @@ interface HistoryInterview {
 // ─────────────────────────────────────
 
 function getScoreColor(score: number) {
-    if (score >= 90) return "text-emerald-600";
-    if (score >= 75) return "text-amber-500";
-    return "text-red-500";
+    if (score >= 60) return "text-[#1a7f37]";
+    if (score >= 40) return "text-[#9a6700]";
+    return "text-[#cf222e]";
 }
 
-function getScoreBg(score: number) {
-    if (score >= 90) return "bg-emerald-50 border-emerald-200 text-emerald-700";
-    if (score >= 75) return "bg-amber-50 border-amber-200 text-amber-700";
-    return "bg-red-50 border-red-200 text-red-700";
-}
-
-function getScoreGradient(score: number) {
-    if (score >= 90) return "from-emerald-500 to-emerald-600";
-    if (score >= 75) return "from-amber-400 to-amber-500";
-    return "from-red-400 to-red-500";
+function getScoreStroke(score: number) {
+    if (score >= 60) return "#1a7f37";
+    if (score >= 40) return "#9a6700";
+    return "#cf222e";
 }
 
 function formatDuration(seconds: number | null) {
@@ -111,13 +105,13 @@ function getTypeLabel(type: string) {
 function getTypeColor(type: string) {
     switch (type) {
         case "BEHAVIORAL":
-            return "bg-violet-100 text-violet-700 border-violet-200";
+            return "bg-[rgba(130,80,215,0.08)] border-[rgba(130,80,215,0.2)] text-[#8250df]";
         case "TECHNICAL":
-            return "bg-blue-100 text-blue-700 border-blue-200";
+            return "bg-[rgba(9,105,218,0.08)] border-[rgba(9,105,218,0.2)] text-[#0969da]";
         case "SYSTEM_DESIGN":
-            return "bg-cyan-100 text-cyan-700 border-cyan-200";
+            return "bg-[rgba(26,127,55,0.08)] border-[rgba(26,127,55,0.2)] text-[#1a7f37]";
         default:
-            return "bg-slate-100 text-slate-700 border-slate-200";
+            return "bg-[#f6f8fa] border-[#d0d7de] text-[#636c76]";
     }
 }
 
@@ -174,22 +168,19 @@ export default function HistoryPage() {
                 <section className="animate-slide-down">
                     <div className="flex items-center gap-4 mb-5">
                         <Link href="/dashboard">
-                            <button className="w-10 h-10 rounded-full bg-white shadow-sm border border-slate-300 flex items-center justify-center hover:bg-slate-50 hover:border-slate-400 transition-all">
-                                <ArrowLeft className="w-5 h-5 text-slate-800" strokeWidth={2.5} />
+                            <button className="w-9 h-9 rounded-md bg-white border border-[#d0d7de] flex items-center justify-center hover:bg-[#f6f8fa] text-[#1f2328] transition-all">
+                                <ArrowLeft className="w-4 h-4" strokeWidth={2} />
                             </button>
                         </Link>
-                        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 border border-blue-200 text-blue-700 text-xs font-bold uppercase tracking-wider shadow-sm">
-                            <Sparkles className="w-4 h-4" />
+                        <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-md bg-[#f6f8fa] border border-[#d0d7de] text-[#636c76] font-mono text-xs uppercase tracking-widest">
+                            <Sparkles className="w-3 h-3" />
                             History
                         </div>
                     </div>
-                    <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-slate-900 mb-3">
-                        Past{" "}
-                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-violet-600">
-                            Interviews
-                        </span>
+                    <h1 className="font-mono font-bold text-3xl tracking-tight text-[#1f2328] mb-3">
+                        Past <span className="text-[#1f2328]">Interviews</span>
                     </h1>
-                    <p className="text-lg text-slate-500 max-w-xl">
+                    <p className="text-sm text-[#636c76] max-w-xl">
                         Review your previous sessions, track your progress, and revisit feedback from every interview.
                     </p>
                 </section>
@@ -285,17 +276,15 @@ export default function HistoryPage() {
                         ].map((stat) => (
                             <div
                                 key={stat.label}
-                                className="group bg-white/60 backdrop-blur-md border border-slate-200 rounded-2xl p-5 hover:border-blue-200 hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5"
+                                className="bg-white border border-[#d0d7de] rounded-lg p-4 hover:border-[#8c959f] transition-colors duration-150"
                             >
-                                <div className={`w-9 h-9 rounded-xl flex items-center justify-center mb-3 transition-transform group-hover:scale-110
-                                    ${stat.color === 'blue' ? 'bg-blue-100 text-blue-600' : ''}
-                                    ${stat.color === 'violet' ? 'bg-violet-100 text-violet-600' : ''}
-                                    ${stat.color === 'cyan' ? 'bg-cyan-100 text-cyan-600' : ''}
-                                `}>
-                                    <stat.icon className="w-4 h-4" />
+                                <div className="text-xs text-[#636c76] flex items-center gap-1.5 mb-2">
+                                    <div className="w-5 h-5 rounded-md bg-[#f6f8fa] border border-[#d0d7de] flex items-center justify-center">
+                                        <stat.icon className="w-3 h-3 text-[#636c76]" />
+                                    </div>
+                                    {stat.label}
                                 </div>
-                                <div className="text-2xl font-bold text-slate-900">{stat.value}</div>
-                                <div className="text-xs font-medium text-slate-500 mt-0.5">{stat.label}</div>
+                                <div className="font-mono font-bold text-3xl tracking-tight text-[#1f2328]">{stat.value}</div>
                             </div>
                         ))}
                     </section>
@@ -306,7 +295,7 @@ export default function HistoryPage() {
                 {/* ─────────────────────────────────── */}
                 {!loading && !error && interviews.length > 0 && (
                     <section className="space-y-4 animate-slide-down" style={{ animationDelay: '0.15s' }}>
-                        <h3 className="text-lg font-bold text-slate-900">All Sessions</h3>
+                        <h3 className="font-semibold text-sm text-[#1f2328]">All Sessions</h3>
 
                         <div className="space-y-4">
                             {interviews.map((interview) => {
@@ -319,43 +308,34 @@ export default function HistoryPage() {
                                         href={`/interview/${interview.id}/report`}
                                     >
                                         <div
-                                            className="group relative bg-white/60 backdrop-blur-md border border-slate-200 rounded-2xl p-6 hover:border-blue-200 hover:shadow-xl transition-all duration-300 hover:-translate-y-1 cursor-pointer overflow-hidden mb-4"
+                                            className="group bg-white border border-[#d0d7de] rounded-lg p-6 hover:border-[#8c959f] transition-colors duration-150 cursor-pointer mb-4"
                                             onMouseEnter={() => setHoveredCard(interview.id)}
                                             onMouseLeave={() => setHoveredCard(null)}
                                         >
-                                            {/* Hover glow */}
-                                            <div className="absolute top-0 right-0 w-40 h-40 bg-blue-500/5 rounded-full blur-[60px] group-hover:bg-blue-500/10 transition-all"></div>
-
-                                            <div className="relative z-10 flex flex-col md:flex-row md:items-center gap-5">
+                                            <div className="flex flex-col md:flex-row md:items-center gap-5">
 
                                                 {/* Left: Score ring */}
                                                 <div className="shrink-0">
                                                     {interview.overallScore != null ? (
                                                         <div className="relative w-16 h-16">
                                                             <svg className="w-full h-full -rotate-90" viewBox="0 0 100 100">
-                                                                <circle cx="50" cy="50" r="42" fill="none" stroke="#f1f5f9" strokeWidth="6" />
+                                                                <circle cx="50" cy="50" r="42" fill="none" stroke="#eaeef2" strokeWidth="6" />
                                                                 <circle
                                                                     cx="50" cy="50" r="42" fill="none"
-                                                                    stroke="url(#histGrad)" strokeWidth="6"
+                                                                    stroke={getScoreStroke(interview.overallScore)} strokeWidth="6"
                                                                     strokeLinecap="round"
                                                                     strokeDasharray={`${(interview.overallScore / 100) * 264} 264`}
                                                                 />
-                                                                <defs>
-                                                                    <linearGradient id="histGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-                                                                        <stop offset="0%" stopColor="#3b82f6" />
-                                                                        <stop offset="100%" stopColor="#7c3aed" />
-                                                                    </linearGradient>
-                                                                </defs>
                                                             </svg>
                                                             <div className="absolute inset-0 flex items-center justify-center">
-                                                                <span className={`text-lg font-bold ${getScoreColor(interview.overallScore)}`}>
+                                                                <span className={`text-lg font-mono font-bold ${getScoreColor(interview.overallScore)}`}>
                                                                     {Math.round(interview.overallScore)}
                                                                 </span>
                                                             </div>
                                                         </div>
                                                     ) : (
-                                                        <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center">
-                                                            <span className="text-xs font-medium text-slate-400">N/A</span>
+                                                        <div className="w-16 h-16 rounded-full bg-[#f6f8fa] border border-[#d0d7de] flex items-center justify-center">
+                                                            <span className="font-mono text-xs font-medium text-[#8c959f]">N/A</span>
                                                         </div>
                                                     )}
                                                 </div>
@@ -363,53 +343,53 @@ export default function HistoryPage() {
                                                 {/* Center: Info */}
                                                 <div className="flex-1 min-w-0">
                                                     <div className="flex flex-wrap items-center gap-2 mb-2">
-                                                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold border ${getTypeColor(interview.type)}`}>
+                                                        <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full font-mono text-xs font-medium border ${getTypeColor(interview.type)}`}>
                                                             <TypeIcon className="w-3 h-3" />
                                                             {getTypeLabel(interview.type)}
                                                         </span>
-                                                        <span className="text-xs font-medium text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">
+                                                        <span className="font-mono text-xs px-2 py-0.5 rounded-full bg-[#f6f8fa] border border-[#d0d7de] text-[#636c76]">
                                                             {interview.difficulty}
                                                         </span>
                                                     </div>
 
-                                                    <div className="text-sm font-semibold text-slate-900 mb-1">
+                                                    <div className="font-mono font-medium text-sm text-[#1f2328] mb-1">
                                                         {formatDate(interview.startedAt)} at {formatTime(interview.startedAt)}
                                                     </div>
 
                                                     {interview.summaryText && (
-                                                        <p className="text-xs text-slate-500 line-clamp-2 max-w-xl">
+                                                        <p className="text-xs text-[#636c76] leading-relaxed line-clamp-2 max-w-xl">
                                                             {interview.summaryText}
                                                         </p>
                                                     )}
 
                                                     {/* Metrics row */}
-                                                    <div className="flex flex-wrap items-center gap-4 mt-3">
-                                                        <span className="flex items-center gap-1.5 text-xs text-slate-400">
+                                                    <div className="flex flex-wrap items-center gap-4 mt-3 font-mono text-xs text-[#8c959f]">
+                                                        <span className="flex items-center gap-1.5">
                                                             <Clock className="w-3 h-3" />
                                                             {formatDuration(interview.durationSeconds)}
                                                         </span>
-                                                        <span className="flex items-center gap-1.5 text-xs text-slate-400">
+                                                        <span className="flex items-center gap-1.5">
                                                             <MessageSquare className="w-3 h-3" />
                                                             {interview.questionCount} questions
                                                         </span>
                                                         {interview.communicationScore != null && (
-                                                            <span className="flex items-center gap-1.5 text-xs text-slate-400">
+                                                            <span className="flex items-center gap-1.5">
                                                                 <Target className="w-3 h-3" />
-                                                                Comm: <strong className={getScoreColor(interview.communicationScore)}>{Math.round(interview.communicationScore)}</strong>
+                                                                Comm: <strong className="text-[#0969da] font-bold">{Math.round(interview.communicationScore)}</strong>
                                                             </span>
                                                         )}
                                                         {interview.confidenceScore != null && (
-                                                            <span className="flex items-center gap-1.5 text-xs text-slate-400">
+                                                            <span className="flex items-center gap-1.5">
                                                                 <Shield className="w-3 h-3" />
-                                                                Conf: <strong className={getScoreColor(interview.confidenceScore)}>{Math.round(interview.confidenceScore)}</strong>
+                                                                Conf: <strong className="text-[#0969da] font-bold">{Math.round(interview.confidenceScore)}</strong>
                                                             </span>
                                                         )}
                                                     </div>
                                                 </div>
 
                                                 {/* Right: Arrow */}
-                                                <div className={`shrink-0 w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center transition-all duration-300 group-hover:bg-blue-50 group-hover:border-blue-200 ${isHovered ? 'translate-x-1' : ''}`}>
-                                                    <ChevronRight className={`w-5 h-5 transition-colors ${isHovered ? 'text-blue-600' : 'text-slate-400'}`} />
+                                                <div className="shrink-0 flex items-center justify-center">
+                                                    <ChevronRight className="w-5 h-5 text-[#8c959f]" />
                                                 </div>
 
                                             </div>

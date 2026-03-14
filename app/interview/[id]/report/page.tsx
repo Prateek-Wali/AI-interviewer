@@ -63,21 +63,21 @@ interface InterviewMeta {
 // ─────────────────────────────────────
 
 function getScoreColor(score: number) {
-    if (score >= 90) return "text-emerald-600";
-    if (score >= 75) return "text-amber-500";
-    return "text-red-500";
+    if (score >= 60) return "text-[#1a7f37]";
+    if (score >= 40) return "text-[#9a6700]";
+    return "text-[#cf222e]";
+}
+
+function getScoreStroke(score: number) {
+    if (score >= 60) return "#1a7f37";
+    if (score >= 40) return "#9a6700";
+    return "#cf222e";
 }
 
 function getScoreDot(score: number) {
-    if (score >= 90) return "bg-emerald-500";
-    if (score >= 75) return "bg-amber-400";
-    return "bg-red-500";
-}
-
-function getScoreBg(score: number) {
-    if (score >= 90) return "bg-emerald-50 border-emerald-200";
-    if (score >= 75) return "bg-amber-50 border-amber-200";
-    return "bg-red-50 border-red-200";
+    if (score >= 60) return "bg-[#1a7f37]";
+    if (score >= 40) return "bg-[#9a6700]";
+    return "bg-[#cf222e]";
 }
 
 function formatDuration(seconds: number | null) {
@@ -204,15 +204,15 @@ export default function ReportPage() {
                 {/* ═══════════════════════════════ */}
                 {/* LEFT SIDEBAR                   */}
                 {/* ═══════════════════════════════ */}
-                <aside className="w-[280px] shrink-0 border-r border-slate-200 bg-white/10 backdrop-blur-md flex flex-col">
+                <aside className="w-[280px] shrink-0 border-r border-[#d0d7de] bg-[#f6f8fa] flex flex-col">
 
                     {/* Sidebar header */}
-                    <div className="px-5 pt-6 pb-4 border-b border-slate-100">
-                        <div className="flex items-center gap-2 text-xs font-bold text-blue-600 uppercase tracking-wider mb-1">
+                    <div className="px-5 pt-6 pb-4 border-b border-[#d0d7de]">
+                        <div className="flex items-center gap-2 font-mono text-xs text-[#636c76] uppercase tracking-widest mb-1">
                             <Sparkles className="w-3 h-3" />
                             Report
                         </div>
-                        <h2 className="text-sm font-bold text-slate-900">Questions ({questions.length})</h2>
+                        <h2 className="font-mono font-bold text-sm text-[#1f2328]">Questions ({questions.length})</h2>
                     </div>
 
                     {/* Question list */}
@@ -223,43 +223,43 @@ export default function ReportPage() {
                             const isHovered = hoveredQuestion === i;
 
                             return (
-                                <button
-                                    key={q.id}
-                                    onClick={() => setSelectedQuestion(i)}
-                                    onMouseEnter={() => setHoveredQuestion(i)}
-                                    onMouseLeave={() => setHoveredQuestion(null)}
-                                    className={`w-full text-left px-5 py-3 flex items-center gap-3 transition-all duration-150 ${isSelected
-                                        ? "bg-slate-100 border-r-2 border-blue-600"
-                                        : "hover:bg-slate-50"
-                                        }`}
-                                >
-                                    {/* Score dot — visible on hover or when selected */}
-                                    <div
-                                        className={`w-2.5 h-2.5 rounded-full shrink-0 transition-all duration-200 ${isHovered || isSelected
-                                            ? getScoreDot(score)
-                                            : "bg-slate-200"
+                                    <button
+                                        key={q.id}
+                                        onClick={() => setSelectedQuestion(i)}
+                                        onMouseEnter={() => setHoveredQuestion(i)}
+                                        onMouseLeave={() => setHoveredQuestion(null)}
+                                        className={`w-full text-left px-5 py-3 flex items-center gap-3 transition-colors duration-150 ${isSelected
+                                            ? "bg-[#eaeef2] border-l-[3px] border-l-[#1a7f37]"
+                                            : "hover:bg-[#eaeef2] border-l-[3px] border-l-transparent"
                                             }`}
-                                    ></div>
+                                    >
+                                        {/* Score dot — visible on hover or when selected */}
+                                        <div
+                                            className={`w-2 h-2 rounded-full shrink-0 transition-colors duration-200 ${isHovered || isSelected
+                                                ? "bg-[#1a7f37]"
+                                                : "bg-[#d0d7de]"
+                                                }`}
+                                        ></div>
 
-                                    <span className="text-sm text-slate-700 truncate">
-                                        <span className="font-semibold text-slate-400">Q{i + 1}:</span>{" "}
-                                        {q.questionText.substring(0, 35)}...
-                                    </span>
-                                </button>
+                                        <span className={`font-mono text-xs truncate ${isSelected ? "text-[#1f2328] font-medium" : "text-[#8c959f]"}`}>
+                                            <span className={isSelected ? "text-[#1f2328]" : "text-[#636c76]"}>Q{i + 1}:</span>{" "}
+                                            {q.questionText.substring(0, 35)}...
+                                        </span>
+                                    </button>
                             );
                         })}
                     </nav>
 
                     {/* Sidebar actions */}
-                    <div className="p-4 border-t border-slate-100 space-y-3">
+                    <div className="p-4 border-t border-[#d0d7de] space-y-3">
                         <Link href="/dashboard" className="block">
-                            <button className="w-full py-2.5 text-sm font-bold text-slate-800 bg-white border-2 border-slate-200 shadow-sm rounded-xl hover:bg-slate-50 hover:border-slate-300 transition-all flex items-center justify-center gap-2">
-                                <ArrowLeft className="w-4 h-4 text-slate-800" strokeWidth={2.5} />
+                            <button className="w-full py-2.5 font-mono text-sm text-[#1f2328] bg-white border border-[#d0d7de] rounded-md hover:bg-[#f6f8fa] transition-colors flex items-center justify-center gap-2">
+                                <ArrowLeft className="w-4 h-4 text-[#1f2328]" strokeWidth={2} />
                                 Back to Dashboard
                             </button>
                         </Link>
                         <Link href="/interview/setup" className="block">
-                            <button className="w-full py-2.5 text-sm font-bold text-white bg-slate-900 shadow-md rounded-xl hover:bg-black transition-all flex items-center justify-center gap-2">
+                            <button className="w-full py-2.5 font-mono font-semibold text-sm text-white bg-[#1a7f37] border border-[rgba(27,31,36,0.15)] rounded-md hover:bg-[#115822] transition-colors flex items-center justify-center gap-2">
                                 <RotateCcw className="w-4 h-4" strokeWidth={2.5} />
                                 Practice Again
                             </button>
@@ -278,16 +278,16 @@ export default function ReportPage() {
                             <section className={showReport ? "animate-report-reveal report-delay-1" : "opacity-0"}>
                                 <div className="flex items-center gap-4 mb-5">
                                     <Link href="/dashboard/history">
-                                        <button className="w-10 h-10 rounded-full bg-white shadow-sm border border-slate-300 flex items-center justify-center hover:bg-slate-50 hover:border-slate-400 transition-all -ml-4 md:-ml-60">
-                                            <ArrowLeft className="w-5 h-5 text-slate-800" strokeWidth={2.5} />
+                                        <button className="w-9 h-9 rounded-md bg-white border border-[#d0d7de] flex items-center justify-center hover:bg-[#f6f8fa] text-[#1f2328] transition-colors -ml-4 md:-ml-60">
+                                            <ArrowLeft className="w-4 h-4" strokeWidth={2} />
                                         </button>
                                     </Link>
-                                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 text-blue-700 border border-blue-200 text-xs font-bold uppercase tracking-wider shadow-sm">
+                                    <div className="inline-flex items-center gap-2 px-3 py-1 bg-[#dafbe1] border border-[rgba(26,127,55,0.3)] text-[#1a7f37] rounded-full font-mono text-xs uppercase tracking-widest">
                                         <CheckCircle2 className="w-4 h-4" />
                                         Interview Complete
                                     </div>
                                 </div>
-                                <div className="text-sm text-slate-500 font-semibold">
+                                <div className="font-mono text-sm text-[#636c76]">
                                     {interviewDate} · {totalDuration}
                                 </div>
                             </section>
@@ -295,79 +295,73 @@ export default function ReportPage() {
                             {/* Score Ring + Stats */}
                             <section className={`flex items-center gap-8 ${showReport ? "animate-report-reveal report-delay-2" : "opacity-0"}`}>
                                 {/* SVG Ring */}
-                                <div className="relative w-28 h-28 shrink-0">
+                                <div className="relative w-28 h-28 shrink-0 bg-white rounded-full border border-[#d0d7de]">
                                     <svg className="w-full h-full -rotate-90" viewBox="0 0 100 100">
-                                        <circle cx="50" cy="50" r="42" fill="none" stroke="#f1f5f9" strokeWidth="6" />
+                                        <circle cx="50" cy="50" r="42" fill="none" stroke="#eaeef2" strokeWidth="6" />
                                         <circle
                                             cx="50" cy="50" r="42" fill="none"
-                                            stroke="url(#scoreGradient)" strokeWidth="6"
+                                            stroke={getScoreStroke(analysis.overallScore)} strokeWidth="6"
                                             strokeLinecap="round"
                                             strokeDasharray={`${(analysis.overallScore / 100) * 264} 264`}
                                         />
-                                        <defs>
-                                            <linearGradient id="scoreGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                                                <stop offset="0%" stopColor="#3b82f6" />
-                                                <stop offset="100%" stopColor="#7c3aed" />
-                                            </linearGradient>
-                                        </defs>
                                     </svg>
                                     <div className="absolute inset-0 flex items-center justify-center">
-                                        <span className="text-3xl font-bold text-slate-900">{analysis.overallScore}</span>
+                                        <span className={`font-mono font-bold text-4xl tracking-tight ${getScoreColor(analysis.overallScore)}`}>{analysis.overallScore}</span>
                                     </div>
                                 </div>
 
                                 {/* Stat pills */}
                                 <div className="flex flex-wrap gap-3">
-                                    <div className="flex items-center gap-2 px-4 py-2 rounded-full border border-slate-200 bg-white">
-                                        <MessageSquare className="w-4 h-4 text-blue-500" />
-                                        <span className="text-sm text-slate-500">Communication</span>
-                                        <span className="text-sm font-bold text-slate-900">{analysis.communicationScore}</span>
+                                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-md border border-[#d0d7de] bg-white">
+                                        <MessageSquare className="w-4 h-4 text-[#8c959f]" />
+                                        <span className="font-mono text-xs text-[#636c76]">Communication</span>
+                                        <span className="font-mono font-bold text-sm text-[#1f2328] ml-1">{analysis.communicationScore}</span>
                                     </div>
-                                    <div className="flex items-center gap-2 px-4 py-2 rounded-full border border-slate-200 bg-white">
-                                        <Shield className="w-4 h-4 text-violet-500" />
-                                        <span className="text-sm text-slate-500">Confidence</span>
-                                        <span className="text-sm font-bold text-slate-900">{analysis.confidenceScore}</span>
+                                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-md border border-[#d0d7de] bg-white">
+                                        <Shield className="w-4 h-4 text-[#8c959f]" />
+                                        <span className="font-mono text-xs text-[#636c76]">Confidence</span>
+                                        <span className="font-mono font-bold text-sm text-[#1f2328] ml-1">{analysis.confidenceScore}</span>
                                     </div>
-                                    <div className="flex items-center gap-2 px-4 py-2 rounded-full border border-slate-200 bg-white">
-                                        <Target className="w-4 h-4 text-cyan-500" />
-                                        <span className="text-sm text-slate-500">STAR</span>
-                                        <span className="text-sm font-bold text-slate-900">{starCount}/{questions.length}</span>
+                                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-md border border-[#d0d7de] bg-white">
+                                        <Target className="w-4 h-4 text-[#8c959f]" />
+                                        <span className="font-mono text-xs text-[#636c76]">STAR</span>
+                                        <span className="font-mono font-bold text-sm text-[#1f2328] ml-1">{starCount}/{questions.length}</span>
                                     </div>
                                 </div>
                             </section>
 
                             {/* Summary */}
                             <section className={showReport ? "animate-report-reveal report-delay-3" : "opacity-0"}>
-                                <p className="text-sm text-slate-600 leading-relaxed">{analysis.summaryText}</p>
+                                <p className="text-sm text-[#636c76] leading-relaxed">{analysis.summaryText}</p>
                             </section>
 
                             {/* Strengths & Improvements */}
                             <section className={`grid md:grid-cols-2 gap-4 ${showReport ? "animate-report-reveal report-delay-4" : "opacity-0"}`}>
                                 {/* Strengths */}
-                                <div className="rounded-2xl border border-slate-200 bg-white p-5">
+                                <div className="rounded-lg border border-[#d0d7de] bg-white p-5">
                                     <div className="flex items-center gap-2 mb-3">
-                                        <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                                        <h3 className="text-sm font-bold text-slate-900">Strengths</h3>
+                                        <CheckCircle2 className="w-4 h-4 text-[#1a7f37]" />
+                                        <h3 className="font-semibold text-sm text-[#1a7f37]">Strengths</h3>
                                     </div>
-                                    <ul className="space-y-2.5">
+                                    <ul className="space-y-3">
                                         {analysis.strengths.map((s, i) => (
-                                            <li key={i} className="text-sm text-slate-600">
-                                                <span className="font-semibold text-slate-800">{s.title}:</span> {s.description}
+                                            <li key={i} className="text-xs text-[#636c76] leading-relaxed pt-3 border-t border-[#eaeef2] first:border-0 first:pt-0">
+                                                <span className="font-mono font-semibold text-[#1f2328]">{s.title}:</span> {s.description}
                                             </li>
                                         ))}
                                     </ul>
                                 </div>
 
                                 {/* Improvements */}
-                                <div className="rounded-2xl border border-slate-200 bg-white p-5">
+                                <div className="rounded-lg border border-[#d0d7de] bg-white p-5">
                                     <div className="flex items-center gap-2 mb-3">
-                                        <TrendingUp className="w-4 h-4 text-amber-500" />
-                                        <h3 className="text-sm font-bold text-slate-900">Areas to Improve</h3>
+                                        <TrendingUp className="w-4 h-4 text-[#9a6700]" />
+                                        <h3 className="font-semibold text-sm text-[#9a6700]">Areas to Improve</h3>
                                     </div>
-                                    <ul className="space-y-2.5">
+                                    <ul className="space-y-3">
                                         {analysis.weaknesses.map((w, i) => (
-                                            <li key={i} className="text-sm text-slate-600">
-                                                <span className="font-semibold text-slate-800">{w.title}:</span> {w.description}
+                                            <li key={i} className="text-xs text-[#636c76] leading-relaxed pt-3 border-t border-[#eaeef2] first:border-0 first:pt-0">
+                                                <span className="font-mono font-semibold text-[#1f2328]">{w.title}:</span> {w.description}
                                             </li>
                                         ))}
                                     </ul>
@@ -376,17 +370,17 @@ export default function ReportPage() {
 
                             {/* Selected Question Detail */}
                             {selected && (
-                                <section className={`rounded-2xl border border-slate-200 bg-white p-6 ${showReport ? "animate-report-reveal report-delay-5" : "opacity-0"}`}>
+                                <section className={`rounded-lg border border-[#d0d7de] bg-white p-6 ${showReport ? "animate-report-reveal report-delay-5" : "opacity-0"}`}>
                                     <div className="flex items-center justify-between mb-4">
-                                        <h3 className="text-sm font-bold text-slate-900">
+                                        <h3 className="font-semibold text-sm text-[#1f2328]">
                                             Q{selectedQuestion + 1} Detail
                                         </h3>
                                         {qAnalysis && (
                                             <div className="flex items-center gap-3">
-                                                <span className={`text-xs font-bold px-2.5 py-1 rounded-full border ${getScoreBg(qAnalysis.score)}`}>
+                                                <span className={`font-mono text-xs font-bold px-2.5 py-1 rounded-full border ${getScoreColor(qAnalysis.score).replace("text-", "border-").replace("-[", "-[").replace("]", "]/30")} ${getScoreColor(qAnalysis.score)} bg-[#f6f8fa]`}>
                                                     {qAnalysis.score}/100
                                                 </span>
-                                                <span className="text-xs text-slate-400 flex items-center gap-1">
+                                                <span className="font-mono text-xs text-[#8c959f] flex items-center gap-1">
                                                     <Clock className="w-3 h-3" />
                                                     {formatDuration(qAnalysis.duration)}
                                                 </span>
@@ -395,27 +389,27 @@ export default function ReportPage() {
                                     </div>
 
                                     {/* Question */}
-                                    <p className="text-sm font-semibold text-slate-800 mb-3">
+                                    <p className="text-sm font-semibold text-[#1f2328] mb-3">
                                         {selected.questionText}
                                     </p>
 
                                     {/* Answer */}
                                     {selected.userResponse ? (
-                                        <div className="bg-slate-50 rounded-xl p-4 mb-3">
-                                            <p className="text-sm text-slate-600 leading-relaxed italic">
+                                        <div className="bg-[#f6f8fa] border border-[#d0d7de] rounded-md p-4 mb-3">
+                                            <p className="text-xs text-[#636c76] leading-relaxed italic">
                                                 &ldquo;{selected.userResponse}&rdquo;
                                             </p>
                                         </div>
                                     ) : (
-                                        <p className="text-sm text-slate-400 italic mb-3">No answer recorded</p>
+                                        <p className="text-xs text-[#8c959f] italic mb-3">No answer recorded</p>
                                     )}
 
                                     {/* Metrics row */}
                                     {qAnalysis && (
-                                        <div className="flex items-center gap-4 text-xs text-slate-400">
+                                        <div className="flex items-center gap-4 font-mono text-xs text-[#636c76]">
                                             <span>Confidence: <strong className={getScoreColor(qAnalysis.score)}>{selected.confidenceScore ?? "—"}</strong></span>
-                                            <span>Filler words: <strong>{selected.fillerWordCount ?? 0}</strong></span>
-                                            <span>Communication: <strong>{selected.speakingRate ?? "—"}</strong></span>
+                                            <span>Filler words: <strong className="text-[#1f2328]">{selected.fillerWordCount ?? 0}</strong></span>
+                                            <span>Communication: <strong className="text-[#1f2328]">{selected.speakingRate ?? "—"}</strong></span>
                                         </div>
                                     )}
                                 </section>
