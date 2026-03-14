@@ -2,6 +2,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import Image from 'next/image';
+import { Settings, LogOut } from 'lucide-react';
 
 interface UserMenuProps {
   email: string;
@@ -48,7 +49,10 @@ export default function UserMenu({ email, avatarUrl }: UserMenuProps) {
              />
           </div>
         ) : (
-          <div className="w-10 h-10 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold border border-blue-700 shadow-sm">
+          <div 
+            className="w-10 h-10 rounded-full text-white flex items-center justify-center font-bold shadow-sm"
+            style={{ background: 'linear-gradient(135deg, #1a7f37, #0969da)' }}
+          >
             {initial}
           </div>
         )}
@@ -56,22 +60,27 @@ export default function UserMenu({ email, avatarUrl }: UserMenuProps) {
 
       {/* 2. The Dropdown Menu */}
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-lg border border-slate-100 py-1 z-50 animate-in fade-in zoom-in-95 duration-200">
+        <div 
+          className="absolute right-0 mt-2 z-50 animate-in fade-in zoom-in-95 duration-200 bg-white border border-[#d0d7de] rounded-lg p-1 min-w-[180px]"
+          style={{ boxShadow: '0 8px 24px rgba(140,149,159,0.2)' }}
+        >
           
-          <div className="px-4 py-3 border-b border-slate-100 md:hidden">
-            <p className="text-sm font-medium text-slate-900 truncate">{email}</p>
+          <div className="text-[12px] text-[#636c76] px-3 py-2 border-b border-[#eaeef2] mb-1">
+            <p className="font-medium truncate">{email}</p>
           </div>
 
-          <a href="/dashboard/settings" className="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors">
-            ⚙️ Settings
+          <a href="/dashboard/settings" className="flex items-center gap-2 text-[13px] px-3 py-1.5 rounded-md text-[#1f2328] hover:bg-[#f6f8fa] transition-colors">
+            <Settings className="w-4 h-4 text-[#8c959f]" />
+            Settings
           </a>
           
-          <form action="/auth/signout" method="post">
+          <form action="/auth/signout" method="post" className="mt-1">
              <button 
                type="submit"
-               className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
+               className="w-full text-left flex items-center gap-2 text-[13px] px-3 py-1.5 rounded-md text-[#cf222e] hover:bg-[#fff8f8] transition-colors"
              >
-               🚪 Sign Out
+               <LogOut className="w-4 h-4" />
+               Sign Out
              </button>
           </form>
         </div>
