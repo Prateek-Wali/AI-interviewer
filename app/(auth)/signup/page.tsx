@@ -49,18 +49,6 @@ export default function Signup() {
     }
   };
 
-  const handleGoogleSignup = async () => {
-    setLoading(true);
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: {
-        // IMPORTANT: Send new users to Pricing
-        redirectTo: `${window.location.origin}/auth/callback?next=/pricing`,
-      },
-    });
-    if (error) setError(error.message);
-    setLoading(false);
-  };
 
   const handleResend = async () => {
     setResendLoading(true);
@@ -136,57 +124,40 @@ export default function Signup() {
         <div className="absolute top-[40%] left-[40%] w-[400px] h-[400px] bg-cyan-50/80 rounded-full mix-blend-multiply filter blur-[80px] opacity-70 animate-drift-fast"></div>
       </div>
 
-      <div className="w-full max-w-md bg-white/80 backdrop-blur-md rounded-2xl shadow-xl border border-slate-200 p-8 relative z-10">
+      <div className="w-full max-w-md bg-white border border-[#d0d7de] rounded-[8px] p-8 relative z-10 shadow-[0_1px_3px_rgba(140,149,159,0.15)]">
+        <div className="absolute top-0 left-0 w-full h-[2px] bg-[linear-gradient(90deg,#1a7f37,#0969da)] rounded-t-[8px]"></div>
 
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-slate-900 mb-2">Create Account</h1>
-          <p className="text-slate-500">Start your interview prep today.</p>
+          <h1 className="font-mono font-bold text-2xl tracking-tight text-[#1f2328] mb-2">Create Account</h1>
+          <p className="text-sm text-[#636c76] mt-1">Start your interview prep today.</p>
         </div>
 
         {error && (
-          <div className="mb-4 p-3 rounded-lg bg-red-50 border border-red-200 text-red-600 text-sm font-medium">
+          <div className="mb-4 p-3 rounded-md bg-red-50 border border-red-200 text-red-600 text-sm font-medium">
             {error}
           </div>
         )}
 
-        {/* GOOGLE BUTTON */}
-        <button
-          onClick={handleGoogleSignup}
-          className="w-full flex items-center justify-center gap-3 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-medium py-3 rounded-lg transition-all mb-6 shadow-sm"
-        >
-          <img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google" className="w-5 h-5" />
-          Sign up with Google
-        </button>
-
-        <div className="relative mb-6">
-          <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-slate-200"></div>
-          </div>
-          <div className="relative flex justify-center text-sm">
-            <span className="px-2 bg-white/50 backdrop-blur-sm text-slate-500">Or sign up with email</span>
-          </div>
-        </div>
-
         <form onSubmit={handleSignUp} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Email Address</label>
+            <label className="block font-mono text-xs font-semibold uppercase tracking-wider text-[#1f2328] mb-1">Email Address</label>
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all bg-white/50"
+              className="w-full bg-white border border-[#d0d7de] rounded-[6px] py-[8px] px-[12px] font-mono text-sm text-[#1f2328] placeholder:text-[#8c959f] hover:border-[#8c959f] focus:border-[#0969da] focus:outline focus:outline-2 focus:outline-[rgba(9,105,218,0.1)] transition-colors duration-150"
               placeholder="you@example.com"
               required
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Password</label>
+            <label className="block font-mono text-xs font-semibold uppercase tracking-wider text-[#1f2328] mb-1">Password</label>
             <input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all bg-white/50"
+              className="w-full bg-white border border-[#d0d7de] rounded-[6px] py-[8px] px-[12px] font-mono text-sm text-[#1f2328] placeholder:text-[#8c959f] hover:border-[#8c959f] focus:border-[#0969da] focus:outline focus:outline-2 focus:outline-[rgba(9,105,218,0.1)] transition-colors duration-150"
               placeholder="••••••••"
               required
             />
@@ -195,15 +166,15 @@ export default function Signup() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg transition-all shadow-lg shadow-blue-500/30 disabled:opacity-50"
+            className="w-full bg-[#1a7f37] hover:bg-[#1c8139] border border-[rgba(27,31,36,0.15)] rounded-[6px] py-[10px] px-[16px] text-white font-mono font-semibold text-sm tracking-wide transition-colors duration-150 disabled:opacity-50"
           >
             {loading ? "Creating Account..." : "Sign Up"}
           </button>
         </form>
 
-        <p className="mt-6 text-center text-sm text-slate-600">
+        <p className="mt-6 text-center text-xs text-[#636c76]">
           Already have an account?{" "}
-          <Link href="/login" className="text-blue-600 font-bold hover:underline">
+          <Link href="/login" className="font-mono text-xs text-[#0969da] hover:underline">
             Log in here
           </Link>
         </p>
