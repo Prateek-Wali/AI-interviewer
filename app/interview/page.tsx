@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useGeminiLive } from "@/hooks/use-gemini-live";
+import { Mic, MicOff } from "lucide-react";
 
 export default function InterviewSession() {
   const router = useRouter();
@@ -15,12 +16,33 @@ export default function InterviewSession() {
   const [currentInterviewId, setCurrentInterviewId] = useState<string | null>(null);
   const {
     connect,
-    disconnect,     // <--- Crucial: We need this to kill the connection
+    disconnect,
     startRecording,
+    setMuted,
     isConnected,
     isSpeaking,
     volume
   } = useGeminiLive();
+
+  // Timer state — declared after useGeminiLive so isConnected is available
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Live timer — starts when interview becomes active
+  useEffect(() => {
+    if (hasPermission && isConnected) {
+      timerRef.current = setInterval(() => setElapsedSeconds(s => s + 1), 1000);
+    }
+    return () => { if (timerRef.current) clearInterval(timerRef.current); };
+  }, [hasPermission, isConnected]);
+
+  const formattedTime = `${Math.floor(elapsedSeconds / 60).toString().padStart(2, '0')}:${(elapsedSeconds % 60).toString().padStart(2, '0')}`;
+
+  // Track if AI has spoken at least once — used to show waiting overlay
+  const [hasAISpoken, setHasAISpoken] = useState(false);
+  useEffect(() => {
+    if (isSpeaking && !hasAISpoken) setHasAISpoken(true);
+  }, [isSpeaking, hasAISpoken]);
 
   // --- CAMERA INIT ---
   const initializeMedia = async () => {
@@ -120,23 +142,55 @@ export default function InterviewSession() {
   // --- PERMISSION SCREEN (Pre-Interview) ---
   if (!hasPermission) {
     return (
-      <div className="min-h-screen bg-white flex flex-col items-center justify-center p-6 text-center font-sans">
-        <div className="absolute inset-0 bg-[linear-gradient(to_right,#f1f5f9_1px,transparent_1px),linear-gradient(to_bottom,#f1f5f9_1px,transparent_1px)] bg-[size:40px_40px] opacity-50 -z-10"></div>
+      <div className="min-h-screen relative font-inter text-[#1f2328] flex items-center justify-center p-4">
 
-        <div className="max-w-md w-full">
-          <div className="w-16 h-16 bg-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg shadow-blue-500/30">
-            <span className="text-2xl text-white">📷</span>
+        {/* Background — matches dashboard */}
+        <div className="fixed inset-0 -z-50 h-full w-full bg-white">
+          <div className="absolute h-full w-full bg-[linear-gradient(to_right,#e2e8f0_1px,transparent_1px),linear-gradient(to_bottom,#e2e8f0_1px,transparent_1px)] bg-[size:24px_24px]"></div>
+          <div className="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] bg-blue-100/80 rounded-full mix-blend-multiply filter blur-[80px] opacity-70 animate-drift-slow"></div>
+          <div className="absolute bottom-[-10%] right-[-10%] w-[600px] h-[600px] bg-purple-100/80 rounded-full mix-blend-multiply filter blur-[80px] opacity-70 animate-drift-medium"></div>
+          <div className="absolute top-[40%] left-[40%] w-[400px] h-[400px] bg-cyan-50/80 rounded-full mix-blend-multiply filter blur-[80px] opacity-70 animate-drift-fast"></div>
+        </div>
+
+        {/* Card */}
+        <div className="w-full max-w-[480px] relative">
+          {/* Top accent bar */}
+          <div className="h-[2px] rounded-t-lg" style={{ background: 'linear-gradient(90deg, #1a7f37, #0969da)' }}></div>
+
+          <div className="bg-white border border-[#d0d7de] border-t-0 rounded-b-lg px-9 py-10 text-center" style={{ boxShadow: '0 1px 3px rgba(140,149,159,0.15)' }}>
+
+            {/* Lintrvw icon */}
+            <div className="w-10 h-10 bg-[#f6f8fa] border border-[#d0d7de] rounded-lg flex items-center justify-center mx-auto mb-5">
+              <svg width="20" height="20" viewBox="0 0 28 28" fill="none">
+                <rect x="4" y="6" width="12" height="2" rx="1" fill="#8c959f"/>
+                <rect x="4" y="11" width="18" height="2" rx="1" fill="#8c959f"/>
+                <rect x="4" y="16" width="14" height="2" rx="1" fill="#8c959f"/>
+                <path d="M4 21 Q5.5 19.5 7 21 Q8.5 22.5 10 21 Q11.5 19.5 13 21 Q14.5 22.5 16 21 Q17.5 19.5 19 21 Q20.5 22.5 22 21"
+                  stroke="#cf222e" strokeWidth="1.5" fill="none" strokeLinecap="round"/>
+              </svg>
+            </div>
+
+            <h1 className="font-mono font-bold text-xl tracking-tight text-[#1f2328]">Let&apos;s check your setup</h1>
+            <p className="text-sm text-[#636c76] text-center mt-1 leading-relaxed mb-7">
+              Lintrvw uses your camera to analyze confidence and body language.
+            </p>
+
+            <button
+              onClick={initializeMedia}
+              className="w-full py-2.5 bg-[#1a7f37] border border-[rgba(27,31,36,0.15)] text-white font-mono font-semibold text-sm rounded-md hover:bg-[#1c8139] transition-colors duration-150"
+            >
+              Enable Camera & Start
+            </button>
+
+            {/* Info note */}
+            <p className="flex items-center justify-center gap-1.5 font-mono text-xs text-[#8c959f] text-center mt-5">
+              <svg className="w-3 h-3 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
+              </svg>
+              Camera data stays on your device. Never uploaded.
+            </p>
+
           </div>
-          <h1 className="text-3xl font-bold text-slate-900 mb-3">Let's check your setup</h1>
-          <p className="text-slate-500 mb-8">
-            Lintrvw uses your camera to analyze confidence and body language.
-          </p>
-          <button
-            onClick={initializeMedia}
-            className="w-full py-4 bg-slate-900 text-white font-bold rounded-full hover:bg-black transition-all transform hover:scale-[1.02] shadow-xl"
-          >
-            Enable Camera & Start
-          </button>
         </div>
       </div>
     );
@@ -144,95 +198,208 @@ export default function InterviewSession() {
 
   // --- MAIN INTERVIEW INTERFACE ---
   return (
-    <main className="fixed inset-0 bg-[#F8FAFC] flex flex-col items-center justify-center p-6 overflow-hidden font-sans">
+    <main className="fixed inset-0 flex flex-col overflow-hidden font-inter">
 
-      {/* 1. DYNAMIC ISLAND (AI VISUALIZER) */}
-      <div className="absolute top-6 z-50 animate-in fade-in slide-in-from-top-4 duration-700">
-        <div className={`flex items-center gap-4 bg-white/80 backdrop-blur-2xl px-6 py-3 rounded-full shadow-sm border transition-all duration-300 ${isSpeaking ? 'border-blue-400 shadow-blue-200' : 'border-white/50'}`}>
+      {/* Background */}
+      <div className="fixed inset-0 -z-50 h-full w-full bg-white">
+        <div className="absolute h-full w-full bg-[linear-gradient(to_right,#e2e8f0_1px,transparent_1px),linear-gradient(to_bottom,#e2e8f0_1px,transparent_1px)] bg-[size:24px_24px]"></div>
+        <div className="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] bg-blue-100/80 rounded-full mix-blend-multiply filter blur-[80px] opacity-70 animate-drift-slow"></div>
+        <div className="absolute bottom-[-10%] right-[-10%] w-[600px] h-[600px] bg-purple-100/80 rounded-full mix-blend-multiply filter blur-[80px] opacity-70 animate-drift-medium"></div>
+        <div className="absolute top-[40%] left-[40%] w-[400px] h-[400px] bg-cyan-50/80 rounded-full mix-blend-multiply filter blur-[80px] opacity-70 animate-drift-fast"></div>
+      </div>
 
-          {/* The "Orb" - Reacts to Speaking State */}
-          <div className="relative flex items-center justify-center w-6 h-6">
-            {isSpeaking ? (
-              // AI IS TALKING: Big Pulse
-              <>
-                <div className="absolute inset-0 bg-blue-500 rounded-full animate-ping opacity-40"></div>
-                <div className="w-3 h-3 bg-blue-600 rounded-full animate-pulse"></div>
-              </>
-            ) : (
-              // AI IS LISTENING: React to User Volume
-              <div
-                className="bg-slate-800 rounded-full transition-all duration-75"
-                style={{
-                  width: `${Math.max(8, volume * 100)}px`,
-                  height: `${Math.max(8, volume * 100)}px`
-                }}
-              ></div>
-            )}
+      {/* Waiting overlay — shown until AI speaks for the first time */}
+      {hasPermission && !hasAISpoken && (
+        <div className="fixed inset-0 z-50 bg-[#1f2328]/60 flex flex-col items-center justify-center">
+          <div className="flex flex-col items-center gap-4">
+            <div className="w-8 h-8 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+            <span className="font-mono text-sm text-white font-medium">Waiting for interviewer to connect...</span>
           </div>
+        </div>
+      )}
 
-          <span className="text-sm font-semibold text-slate-700 w-40 text-center truncate">
-            {isConnected ? (isSpeaking ? "Lintrvw Speaking..." : "Listening...") : "Connecting..."}
+      {/* ═══ TOP STATUS BAR ═══ */}
+      <div className="flex items-center gap-8 px-6 py-3 border-b border-[#d0d7de] bg-white/80 backdrop-blur-sm z-10">
+
+        {/* Left — Lintrvw logo + session label */}
+        <div className="flex items-center gap-3">
+          <div className="w-7 h-7 bg-[#f6f8fa] border border-[#d0d7de] rounded-md flex items-center justify-center">
+            <svg width="14" height="14" viewBox="0 0 28 28" fill="none">
+              <rect x="4" y="6" width="12" height="2" rx="1" fill="#8c959f"/>
+              <rect x="4" y="11" width="18" height="2" rx="1" fill="#8c959f"/>
+              <rect x="4" y="16" width="14" height="2" rx="1" fill="#8c959f"/>
+              <path d="M4 21 Q5.5 19.5 7 21 Q8.5 22.5 10 21 Q11.5 19.5 13 21 Q14.5 22.5 16 21 Q17.5 19.5 19 21 Q20.5 22.5 22 21"
+                stroke="#cf222e" strokeWidth="1.5" fill="none" strokeLinecap="round"/>
+            </svg>
+          </div>
+          <span className="font-mono font-bold text-sm">
+            <span className="text-[#1f2328]">Lint</span><span className="text-[#8c959f]">rvw</span>
           </span>
+          <span className="text-[#d0d7de]">|</span>
+          <span className="font-mono text-xs text-[#636c76]">Behavioral Interview</span>
+        </div>
 
-          {/* Timer */}
-          <div className="h-4 w-[1px] bg-slate-200"></div>
-          <span className="text-sm font-mono text-slate-400">Live</span>
+        {/* Speaking status */}
+        <div className="flex items-center gap-2">
+          {isSpeaking ? (
+            <div className="flex items-center gap-2 bg-[#f6f8fa] border border-[#d0d7de] rounded-md px-3 py-1.5">
+              <div className="flex items-center gap-[3px] h-4">
+                {[0.4, 0.7, 1, 0.7, 0.4].map((scale, i) => (
+                  <div
+                    key={i}
+                    className="w-[3px] bg-[#0969da] rounded-full animate-pulse"
+                    style={{
+                      height: `${scale * 16}px`,
+                      animationDelay: `${i * 0.1}s`,
+                      animationDuration: '0.8s'
+                    }}
+                  />
+                ))}
+              </div>
+              <span className="font-mono text-xs text-[#0969da] font-medium">Alex speaking</span>
+            </div>
+          ) : (isConnected && hasAISpoken) ? (
+            <div className="flex items-center gap-2 bg-[#dafbe1] border border-[rgba(26,127,55,0.3)] rounded-md px-3 py-1.5">
+              <div className="w-2 h-2 rounded-full bg-[#1a7f37] animate-pulse" />
+              <span className="font-mono text-xs text-[#1a7f37] font-medium">Listening...</span>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2 bg-[#f6f8fa] border border-[#d0d7de] rounded-md px-3 py-1.5">
+              <div className="w-2 h-2 rounded-full bg-[#8c959f]" />
+              <span className="font-mono text-xs text-[#8c959f]">Connecting...</span>
+            </div>
+          )}
         </div>
       </div>
 
-      {/* 2. THE STAGE (CENTERED VIDEO) */}
-      <div className="relative w-full max-w-5xl aspect-video bg-black rounded-[32px] overflow-hidden shadow-2xl border-[8px] border-white group">
+      {/* ═══ MAIN CONTENT — Two-panel grid ═══ */}
+      <div className="grid grid-cols-3 gap-5 flex-1 max-w-6xl w-full mx-auto px-6 py-5 pb-24 min-h-0">
 
-        {/* The Webcam Feed */}
-        <video
-          ref={videoRef}
-          autoPlay
-          muted
-          playsInline
-          className="w-full h-full object-cover scale-x-[-1]"
-        />
+        {/* Camera — 2 columns */}
+        <div className={`col-span-2 relative bg-[#0d1117] border rounded-lg overflow-hidden transition-shadow duration-300 ${
+          isSpeaking ? 'shadow-[0_0_0_2px_#0969da] border-[#0969da]' : volume > 0.02 ? 'shadow-[0_0_0_2px_#1a7f37] border-[#1a7f37]' : 'border-[#d0d7de]'
+        }`}>
+          <video
+            ref={videoRef}
+            autoPlay
+            muted
+            playsInline
+            className="w-full h-full object-cover scale-x-[-1]"
+          />
 
-        {/* Status Overlay (Top Left of Video) */}
-        <div className="absolute top-6 left-6 flex items-center gap-2 bg-black/30 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10">
-          <div className="w-2 h-2 bg-green-500 rounded-full shadow-[0_0_8px_#22c55e]"></div>
-          <span className="text-xs font-medium text-white/90">Live Feed</span>
+          {/* Live Feed badge */}
+          <div className="absolute top-3 left-3 flex items-center gap-2 px-2.5 py-1 rounded-md" style={{ background: 'rgba(13,17,23,0.7)', border: '1px solid rgba(255,255,255,0.1)' }}>
+            <div className="w-1.5 h-1.5 bg-green-500 rounded-full shadow-[0_0_6px_#22c55e]"></div>
+            <span className="font-mono text-xs font-medium text-white">Live Feed</span>
+          </div>
+
+          {/* Mute Overlay */}
+          {isMuted && (
+            <div className="absolute inset-0 flex items-center justify-center bg-black/60">
+              <div className="flex items-center gap-2 bg-[#cf222e] text-white px-5 py-2.5 rounded-md font-mono font-semibold text-sm">
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />
+                </svg>
+                Microphone Off
+              </div>
+            </div>
+          )}
         </div>
 
-        {/* Mute Overlay */}
-        {isMuted && (
-          <div className="absolute inset-0 flex items-center justify-center bg-black/50 backdrop-blur-sm transition-all">
-            <div className="bg-red-500/90 text-white px-6 py-3 rounded-full font-bold flex items-center gap-3 shadow-lg">
-              <span>Microphone Off</span>
+        {/* Right Panel — 1 column */}
+        <div className="col-span-1 flex flex-col gap-4 min-h-0">
+
+          {/* Alex Avatar Card */}
+          <div className="bg-white border border-[#d0d7de] rounded-lg p-4 flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-[#0d1117] border border-[#30363d] flex items-center justify-center flex-shrink-0">
+              <span className="font-mono font-bold text-sm text-white">A</span>
+            </div>
+            <div>
+              <div className="font-mono font-semibold text-sm text-[#1f2328]">Alex</div>
+              <div className="font-mono text-xs text-[#8c959f]">Senior Engineer · Interviewer</div>
+            </div>
+            <div className={`ml-auto w-2.5 h-2.5 rounded-full transition-colors ${isSpeaking ? 'bg-[#0969da] animate-pulse' : 'bg-[#eaeef2]'}`} />
+          </div>
+
+          {/* Question Progress Card */}
+          <div className="bg-white border border-[#d0d7de] rounded-lg p-4">
+            <div className="flex items-center justify-between mb-3">
+              <span className="font-mono text-xs font-semibold uppercase tracking-wider text-[#636c76]">Progress</span>
+              <span className="font-mono text-xs text-[#8c959f]">Interview in progress</span>
+            </div>
+            <div className="h-1.5 bg-[#eaeef2] rounded-full overflow-hidden mb-3">
+              <div
+                className="h-full bg-[#1a7f37] rounded-full transition-all duration-500"
+                style={{ width: `${Math.min(100, (elapsedSeconds / 1800) * 100)}%` }}
+              />
+            </div>
+            <div className="flex gap-2">
+              <span className="font-mono text-[10px] px-2 py-0.5 rounded-full border border-[#d0d7de] bg-[#f6f8fa] text-[#636c76]">
+                3 Behavioral
+              </span>
+              <span className="font-mono text-[10px] px-2 py-0.5 rounded-full border border-[#d0d7de] bg-[#f6f8fa] text-[#636c76]">
+                5 Resume-based
+              </span>
             </div>
           </div>
-        )}
+
+          {/* Tips Card */}
+          <div className="bg-white border border-[#d0d7de] rounded-lg p-4 flex-1 min-h-0">
+            <div className="font-mono text-xs font-semibold uppercase tracking-wider text-[#636c76] mb-3">
+              Quick Tips
+            </div>
+            <div className="space-y-3">
+              {[
+                { icon: '🎯', tip: 'Use the STAR method for behavioral questions' },
+                { icon: '⏱️', tip: 'Take a moment to think before answering' },
+                { icon: '📢', tip: 'Speak clearly — Alex adapts to your pace' },
+                { icon: '💡', tip: 'Be specific with examples from your experience' },
+              ].map((item, i) => (
+                <div key={i} className="flex gap-2.5 items-start">
+                  <span className="text-xs mt-0.5">{item.icon}</span>
+                  <span className="font-mono text-[11px] text-[#636c76] leading-relaxed">{item.tip}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+        </div>
       </div>
 
-      {/* 3. FLOATING CONTROLS (BOTTOM) */}
-      <div className="absolute bottom-10 flex items-center gap-4 z-50">
+      {/* ═══ BOTTOM CONTROL BAR ═══ */}
+      <div className="fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-sm border-t border-[#d0d7de] px-6 py-3.5 z-20">
+        <div className="max-w-6xl mx-auto flex items-center justify-center">
 
-        {/* Mute Toggle */}
-        <button
-          onClick={() => setIsMuted(!isMuted)}
-          className={`w-14 h-14 rounded-full flex items-center justify-center transition-all shadow-lg hover:-translate-y-1 ${isMuted ? 'bg-red-50 text-red-500 border border-red-100' : 'bg-white text-slate-700 border border-white hover:border-blue-200'}`}
-        >
-          {isMuted ? "🔇" : "🎙️"}
-        </button>
+          {/* Controls */}
+          <div className="flex items-center gap-3">
+            {/* Mic toggle */}
+            <button
+              onClick={() => {
+                const newMuted = !isMuted;
+                setIsMuted(newMuted);
+                setMuted(newMuted);
+              }}
+              className={`w-10 h-10 rounded-lg border flex items-center justify-center transition-all ${
+                isMuted
+                  ? 'bg-[#fff8f8] border-[rgba(207,34,46,0.3)] text-[#cf222e]'
+                  : 'bg-white border-[#d0d7de] text-[#1f2328] hover:bg-[#f6f8fa]'
+              }`}
+            >
+              {isMuted ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+            </button>
 
-        {/* End Call (Pill) */}
-        <button
-          onClick={handleEndSession}
-          className="bg-red-500 hover:bg-red-600 text-white px-8 py-4 rounded-full font-bold shadow-lg hover:shadow-red-500/30 hover:-translate-y-1 transition-all flex items-center gap-2"
-        >
-          <span className="w-2 h-2 bg-white rounded-full"></span>
-          End Session
-        </button>
+            {/* End Session */}
+            <button
+              onClick={handleEndSession}
+              className="flex items-center gap-2 bg-[#cf222e] hover:bg-[#a40e26] text-white font-mono font-semibold text-sm px-5 py-2.5 rounded-md border border-[rgba(207,34,46,0.4)] transition-colors"
+            >
+              <div className="w-2 h-2 rounded-full bg-white animate-pulse" />
+              End Session
+            </button>
+          </div>
 
-        {/* Settings / More */}
-        <button className="w-14 h-14 bg-white/80 backdrop-blur-md border border-white text-slate-600 rounded-full flex items-center justify-center hover:bg-white shadow-lg hover:-translate-y-1 transition-all">
-          ⚙️
-        </button>
-
+        </div>
       </div>
 
     </main>

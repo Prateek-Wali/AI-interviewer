@@ -50,6 +50,23 @@ export default function Signup() {
   };
 
 
+  const handleGoogleLogin = async () => {
+    setLoading(true);
+    
+    // Force clear any stale session/cookies to prevent race condition with background refresh
+    await supabase.auth.signOut();
+    
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        // Signup goes to Pricing
+        redirectTo: `${window.location.origin}/auth/callback?next=/pricing`,
+      },
+    });
+    if (error) setError(error.message);
+    setLoading(false);
+  };
+
   const handleResend = async () => {
     setResendLoading(true);
     setError(null);
@@ -137,6 +154,22 @@ export default function Signup() {
             {error}
           </div>
         )}
+
+        {/* GOOGLE BUTTON */}
+        <button
+          onClick={handleGoogleLogin}
+          type="button"
+          className="w-full flex items-center justify-center gap-3 bg-white border border-[#d0d7de] rounded-[6px] py-[10px] px-[16px] hover:bg-[#f6f8fa] hover:border-[#8c959f] transition-all duration-150 mb-6 font-mono font-medium text-sm text-[#1f2328]"
+        >
+          <img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google" className="w-5 h-5" />
+          Sign up with Google
+        </button>
+
+        <div className="flex items-center w-full mb-6 relative">
+          <div className="flex-grow border-t border-[#eaeef2]"></div>
+          <span className="px-4 bg-white font-mono text-xs text-[#8c959f] tracking-wide relative z-10">Or continue with email</span>
+          <div className="flex-grow border-t border-[#eaeef2]"></div>
+        </div>
 
         <form onSubmit={handleSignUp} className="space-y-4">
           <div>

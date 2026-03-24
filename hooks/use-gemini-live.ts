@@ -28,6 +28,7 @@ export function useGeminiLive() {
     const nextStartTimeRef = useRef<number>(0);
     const recognitionRef = useRef<any>(null);
     const isSpeakingRef = useRef<boolean>(false); // Track AI speaking state for audio gating
+    const isMutedRef = useRef<boolean>(false);     // Track user mute state
     const volumeThrottleRef = useRef<number>(0);   // Throttle volume updates
     const micStreamRef = useRef<MediaStream | null>(null);
 
@@ -75,7 +76,12 @@ export function useGeminiLive() {
                 })
             });
             const result = await res.json();
-            if (result.skipped) {
+            if (result.smallTalk) {
+                console.log("💬 Server classified as small talk, question record deleted");
+                // Reset so next turnComplete creates a fresh question
+                currentQuestionIdRef.current = null;
+                setCurrentQuestionId(null);
+            } else if (result.skipped) {
                 console.log("🔁 Server classified as meta-request, question stays unanswered");
                 // Don't mark as answered — next turnComplete will reuse the same question
             } else {
@@ -176,13 +182,24 @@ export function useGeminiLive() {
             try {
                 const data = JSON.parse(textData);
 
-                // A. Handle Audio (Standard)
+                // A. Handle Setup Complete — kick off the AI to speak first
+                if (data.setupComplete) {
+                    console.log("✅ Gemini session ready, triggering AI to start...");
+                    ws.send(JSON.stringify({
+                        client_content: {
+                            turns: [{ role: "user", parts: [{ text: "Begin the interview." }] }],
+                            turn_complete: true
+                        }
+                    }));
+                }
+
+                // B. Handle Audio (Standard)
                 if (data.serverContent?.modelTurn?.parts?.[0]?.inlineData) {
                     const audioBase64 = data.serverContent.modelTurn.parts[0].inlineData.data;
                     scheduleAudioChunk(audioBase64);
                 }
 
-                // B. Handle Turn Complete (New Logic)
+                // C. Handle Turn Complete
                 if (data.serverContent?.turnComplete) {
                     // AI finished speaking -> Save a Question Record
                     if (id) {
@@ -264,8 +281,8 @@ export function useGeminiLive() {
             volumeThrottleRef.current = now;
         }
 
-        // ✅ FIX 4: Don't send audio while AI is speaking (audio gating)
-        if (isSpeakingRef.current) return;
+        // ✅ FIX 4: Don't send audio while AI is speaking or user is muted
+        if (isSpeakingRef.current || isMutedRef.current) return;
 
         const downsampled = downsampleTo16k(inputData, audioContextRef.current?.sampleRate || 48000);
         const pcmData = floatTo16BitPCM(downsampled);
@@ -337,7 +354,17 @@ export function useGeminiLive() {
         setIsConnected(false);
     }, []);
 
-    return { connect, disconnect, startRecording, isConnected, isSpeaking, volume };
+    const setMuted = useCallback((muted: boolean) => {
+        isMutedRef.current = muted;
+        // Also mute/unmute the actual mic tracks so the browser shows the correct state
+        if (micStreamRef.current) {
+            micStreamRef.current.getAudioTracks().forEach(track => {
+                track.enabled = !muted;
+            });
+        }
+    }, []);
+
+    return { connect, disconnect, startRecording, setMuted, isConnected, isSpeaking, volume };
 }
 
 // --- UTILS ---

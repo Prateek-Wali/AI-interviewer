@@ -98,18 +98,31 @@ export async function saveQuestionBank(
 function buildPrompt(resumeText: string): string {
     return `You are an expert behavioral interview question designer. 
 
-Given the candidate's resume below, generate exactly 12 interview questions.
+Given the candidate's resume below, generate exactly 8 interview questions.
 
 CRITICAL RULES:
-1. Generate EXACTLY 12 questions — no more, no less.
-2. **8 questions MUST be resume-specific** — each one MUST explicitly reference a specific project name, technology, company, role, or experience mentioned in the resume. The candidate should immediately recognize that you read their resume.
-3. **4 questions should be standard behavioral** — classic interview questions that could be asked to any candidate (e.g., "Tell me about a time you failed", "How do you handle tight deadlines?").
-4. Distribute the 8 resume-specific questions as:
-   - 5 questions: "resume_deep_dive" — drill into specific projects, technical decisions, or claims on the resume. Name the actual project or technology.
-   - 3 questions: "situational" — hypothetical scenarios that directly reference the candidate's specific tech stack or domain from the resume
-5. The 4 generic questions should all be category "behavioral" — classic STAR-method questions about teamwork, conflict, leadership, failure.
-6. Vary the difficulty: 3 Easy, 6 Medium, 3 Hard.
+1. Generate EXACTLY 8 questions — no more, no less.
+2. **5 questions MUST be resume-specific** — each one MUST explicitly reference a specific project name, technology, company, role, or experience mentioned in the resume. The candidate should immediately recognize that you read their resume.
+3. **3 questions MUST be classic behavioral interview questions** — these are standard STAR-method questions that could be asked to ANY candidate. They must NOT reference ANYTHING from the resume. This is NON-NEGOTIABLE.
+4. Distribute the 5 resume-specific questions as:
+   - 3 questions: "resume_deep_dive" — drill into specific projects, technical decisions, or claims on the resume. Name the actual project or technology.
+   - 2 questions: "situational" — hypothetical scenarios that directly reference the candidate's specific tech stack or domain from the resume
+5. The 3 generic behavioral questions should all be category "behavioral". Pick 3 from the following list (or write ones very similar in spirit):
+   - "Tell me about a time you had to explain a complex technical concept to someone non-technical — a teammate, a manager, or a client. How did you approach it, and how did you know they understood?"
+   - "Describe a situation where you received critical feedback on your work. How did you respond, and what did you change?"
+   - "Tell me about a time you failed at something important. What happened, and what did you learn from it?"
+   - "Give me an example of a time you had to work with someone whose working style was very different from yours. How did you handle it?"
+   - "Tell me about a time you had to meet a tight deadline. How did you prioritize your work and what was the outcome?"
+   - "Describe a situation where you had to make a decision without having all the information you wanted. What did you do?"
+   - "Tell me about a time you went above and beyond what was expected of you."
+   - "Give me an example of a time you had a conflict with a coworker. How did you resolve it?"
+   - "Tell me about a time you had to learn a new skill quickly to complete a task or project."
+   - "Describe a situation where you took the lead on a team project. What challenges did you face?"
+6. Vary the difficulty: 2 Easy, 4 Medium, 2 Hard.
 7. For each question, include a "context" field explaining WHY you chose this question based on their resume (for resume-specific) or why it's important (for generic behavioral).
+8. ORDERING: Place the questions in this order — start with 2 behavioral questions, then alternate resume-specific questions, and end with the 3rd behavioral question. This creates a natural interview flow.
+
+⚠️ STRICT WARNING: The 3 behavioral questions must be COMPLETELY GENERIC. They must NOT mention any project, company, technology, or detail from the resume. If a behavioral question references the resume in any way, it is WRONG.
 
 EXAMPLES OF GOOD RESUME-SPECIFIC QUESTIONS:
 - "You listed a React dashboard project that handled real-time data. Walk me through the architecture decisions you made and why."
@@ -126,7 +139,7 @@ CANDIDATE RESUME:
 ${resumeText.substring(0, 8000)}
 """
 
-Respond with a JSON array of exactly 12 objects. Each object must have:
+Respond with a JSON array of exactly 8 objects. Each object must have:
 - "questionText": the full interview question as a string
 - "category": one of "resume_deep_dive", "behavioral", "situational"  
 - "context": a brief explanation of why this question was chosen
@@ -336,49 +349,58 @@ Respond with ONLY a JSON object matching this schema:
 }
 
 // ─────────────────────────────────────────────
-// Response Classification (Meta-Request Detection)
+// Response Classification (3-Way: Answer / Meta-Request / Small Talk)
 // ─────────────────────────────────────────────
 
+export type ResponseClassification = "ANSWER" | "META_REQUEST" | "SMALL_TALK";
+
 /**
- * Classifies whether a user's speech is a real interview answer or a meta-request
- * (e.g., "repeat the question", "what do you mean by X?", "I didn't catch that").
- *
- * Returns `true` if the response is a meta-request (should NOT be saved as an answer).
- * Returns `false` if the response is a real answer (should be saved).
+ * Classifies whether a user's speech is:
+ * - "ANSWER"       → A real interview answer (save + evaluate)
+ * - "META_REQUEST"  → Asking to repeat/clarify (skip saving, reuse question)
+ * - "SMALL_TALK"    → Greetings, pleasantries, chit-chat (delete question record)
  *
  * Short-circuits for long responses (>50 words) — those are always real answers.
  */
-export async function classifyResponse(userResponse: string): Promise<boolean> {
+export async function classifyResponse(userResponse: string): Promise<ResponseClassification> {
     // Short-circuit: long responses are always real answers
     const wordCount = userResponse.trim().split(/\s+/).length;
     if (wordCount > 50) {
         console.log("⚡ Classification short-circuit: long response, treating as answer");
-        return false;
+        return "ANSWER";
     }
 
     if (!GEMINI_API_KEY) {
         console.warn("⚠️ No API key for classification, defaulting to answer");
-        return false;
+        return "ANSWER";
     }
 
     try {
         const prompt = `You are classifying a user's speech during a job interview.
 
-Is the following text a DIRECT ANSWER to an interview question, or is it a META-REQUEST?
+Classify the following text into EXACTLY one of three categories:
 
-META-REQUEST means any of these:
+ANSWER — The user is attempting to respond to an interview question, even if the answer is short, vague, or incomplete.
+
+META_REQUEST — The user is NOT answering a question. Instead they are:
 - Asking the interviewer to repeat the question
 - Asking for clarification about what was asked
 - Expressing confusion about the question
 - Requesting more time to think
 - Saying they didn't hear or understand
-- Any response that is NOT an attempt to answer the interview question
 
-DIRECT ANSWER means the user is actually attempting to respond to the interview question, even if the answer is short, vague, or incomplete.
+SMALL_TALK — The user is engaging in casual conversation, greetings, or pleasantries that are NOT an interview answer. Examples:
+- "I'm doing great, thanks!"
+- "Good, how about you?"
+- "Nice to meet you too"
+- "I'm good"
+- "Hey, thanks for having me"
+- "Yeah I'm ready, let's do it"
+- Any greeting, pleasantry, or chit-chat before the interview questions begin
 
 User's speech: "${userResponse}"
 
-Respond with ONLY one word: "ANSWER" or "META_REQUEST".`;
+Respond with ONLY one word: "ANSWER", "META_REQUEST", or "SMALL_TALK".`;
 
         const response = await fetch(GEMINI_REST_URL, {
             method: "POST",
@@ -393,17 +415,24 @@ Respond with ONLY one word: "ANSWER" or "META_REQUEST".`;
 
         if (!response.ok) {
             console.warn("⚠️ Classification API error, defaulting to answer");
-            return false;
+            return "ANSWER";
         }
 
         const data = await response.json();
         const result = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "";
-        const isMeta = result.includes("META_REQUEST");
 
-        console.log(`🏷️ Response classified as: ${result} (${isMeta ? "will skip" : "will save"})`);
-        return isMeta;
+        if (result.includes("SMALL_TALK")) {
+            console.log(`🏷️ Response classified as: SMALL_TALK (will delete question record)`);
+            return "SMALL_TALK";
+        } else if (result.includes("META_REQUEST")) {
+            console.log(`🏷️ Response classified as: META_REQUEST (will skip saving)`);
+            return "META_REQUEST";
+        } else {
+            console.log(`🏷️ Response classified as: ANSWER (will save)`);
+            return "ANSWER";
+        }
     } catch (err) {
         console.error("❌ Classification error, defaulting to answer:", err);
-        return false;
+        return "ANSWER";
     }
 }
