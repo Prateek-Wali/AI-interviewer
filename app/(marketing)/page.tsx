@@ -140,7 +140,35 @@ export default function Home() {
                     </div>
                 </section>
 
-                {/* 4. THE TEAM */}
+                {/* 4. THE ROADMAP */}
+                <section className="px-6 max-w-6xl mx-auto w-full border-t border-slate-200 pt-16">
+                    <div className="mb-8">
+                        <h2 className="font-mona-sans font-semibold tracking-tight text-2xl text-gh-text-light">What&apos;s Next?</h2>
+                        <p className="text-gh-muted">We are shipping features weekly.</p>
+                    </div>
+
+                    <div className="grid md:grid-cols-3 gap-6">
+                        <div className="p-6 bg-slate-50/80 backdrop-blur-sm rounded-2xl border border-slate-100">
+                            <span className="text-xs font-medium text-gh-text-light bg-[#f6f8fa] border border-gh-border px-2 py-1 rounded shadow-sm">Now</span>
+                            <h4 className="font-mona-sans font-semibold tracking-tight text-gh-text-light mt-3 text-lg">Behavioral Interview</h4>
+                            <p className="text-sm text-gh-muted mt-2">Practicing STAR method responses with sentiment analysis.</p>
+                        </div>
+
+                        <div className="p-6 bg-slate-50/80 backdrop-blur-sm rounded-2xl border border-slate-100">
+                            <span className="text-xs font-medium text-gh-accent bg-gh-accent/10 border border-gh-accent/20 px-2 py-1 rounded">Coming Soon</span>
+                            <h4 className="font-mona-sans font-semibold tracking-tight text-gh-text-light mt-3 text-lg">Technical Interview</h4>
+                            <p className="text-sm text-gh-muted mt-2">Core data structures (Arrays, Trees, Graphs) with strict time limits.</p>
+                        </div>
+
+                        <div className="p-6 bg-slate-50/80 backdrop-blur-sm rounded-2xl border border-slate-100">
+                            <span className="text-xs font-medium text-gh-accent bg-gh-accent/10 border border-gh-accent/20 px-2 py-1 rounded">Coming Soon</span>
+                            <h4 className="font-mona-sans font-semibold tracking-tight text-gh-text-light mt-3 text-lg">System Design</h4>
+                            <p className="text-sm text-gh-muted mt-2">Whiteboard-style interviews for scaling distributed systems.</p>
+                        </div>
+                    </div>
+                </section>
+
+                {/* 5. THE TEAM */}
                 <section className="px-6 max-w-6xl mx-auto w-full">
                     <h2 className="font-mona-sans font-semibold tracking-tightest text-center text-3xl text-gh-text-light mb-12">Built by Students, for Students</h2>
 
@@ -182,39 +210,6 @@ export default function Home() {
                             </p>
                         </div>
 
-                    </div>
-                </section>
-
-                {/* 5. THE ROADMAP */}
-                <section className="px-6 max-w-6xl mx-auto w-full border-t border-slate-200 pt-16">
-                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
-                        <div>
-                            <h2 className="font-mona-sans font-semibold tracking-tight text-2xl text-gh-text-light">What's Next?</h2>
-                            <p className="text-gh-muted">We are shipping features weekly.</p>
-                        </div>
-                        <button className="mt-4 md:mt-0 px-4 py-2 border border-gh-border hover:bg-[#f6f8fa] text-gh-text-light rounded-md text-sm font-medium transition-colors shadow-sm">
-                            Request a Feature
-                        </button>
-                    </div>
-
-                    <div className="grid md:grid-cols-3 gap-6">
-                        <div className="p-6 bg-slate-50/80 backdrop-blur-sm rounded-2xl border border-slate-100">
-                            <span className="text-xs font-medium text-gh-text-light bg-[#f6f8fa] border border-gh-border px-2 py-1 rounded shadow-sm">Now</span>
-                            <h4 className="font-mona-sans font-semibold tracking-tight text-gh-text-light mt-3 text-lg">Algorithms Mode</h4>
-                            <p className="text-sm text-gh-muted mt-2">Core data structures (Arrays, Trees, Graphs) with strict time limits.</p>
-                        </div>
-
-                        <div className="p-6 bg-slate-50/80 backdrop-blur-sm rounded-2xl border border-slate-100">
-                            <span className="text-xs font-medium text-gh-accent bg-gh-accent/10 border border-gh-accent/20 px-2 py-1 rounded">Coming Soon</span>
-                            <h4 className="font-mona-sans font-semibold tracking-tight text-gh-text-light mt-3 text-lg">System Design</h4>
-                            <p className="text-sm text-gh-muted mt-2">Whiteboard-style interviews for scaling distributed systems.</p>
-                        </div>
-
-                        <div className="p-6 bg-slate-50/80 backdrop-blur-sm rounded-2xl border border-slate-100">
-                            <span className="text-xs font-medium text-gh-muted bg-slate-100 border border-gh-border px-2 py-1 rounded">Planning</span>
-                            <h4 className="font-mona-sans font-semibold tracking-tight text-gh-text-light mt-3 text-lg">Behavioral AI</h4>
-                            <p className="text-sm text-slate-500 mt-2">Practicing STAR method responses with sentiment analysis.</p>
-                        </div>
                     </div>
                 </section>
 

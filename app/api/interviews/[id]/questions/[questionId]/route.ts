@@ -59,15 +59,28 @@ export async function PATCH(
       );
     }
 
-    // 5. Classify: is this a real answer or a meta-request (repeat/clarification)?
-    const isMetaRequest = await classifyResponse(userResponse);
-    if (isMetaRequest) {
+    // 5. Classify: answer, meta-request, or small talk?
+    const classification = await classifyResponse(userResponse);
+
+    if (classification === "META_REQUEST") {
       console.log(`🔁 Meta-request detected for question ${questionId}, skipping save:`, userResponse);
       return NextResponse.json({
         success: true,
         skipped: true,
         reason: "meta_request",
         message: "Response classified as a meta-request (repeat/clarification), not saved."
+      });
+    }
+
+    if (classification === "SMALL_TALK") {
+      console.log(`🗑️ Small talk detected, deleting question record ${questionId}:`, userResponse);
+      await db.question.delete({ where: { id: questionId } });
+      return NextResponse.json({
+        success: true,
+        skipped: true,
+        smallTalk: true,
+        reason: "small_talk",
+        message: "Response classified as small talk, question record deleted."
       });
     }
 
