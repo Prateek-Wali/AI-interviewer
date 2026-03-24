@@ -162,17 +162,17 @@ export default function InterviewSession() {
             {/* Lintrvw icon */}
             <div className="w-10 h-10 bg-[#f6f8fa] border border-[#d0d7de] rounded-lg flex items-center justify-center mx-auto mb-5">
               <svg width="20" height="20" viewBox="0 0 28 28" fill="none">
-                <rect x="4" y="6" width="12" height="2" rx="1" fill="#8c959f"/>
-                <rect x="4" y="11" width="18" height="2" rx="1" fill="#8c959f"/>
-                <rect x="4" y="16" width="14" height="2" rx="1" fill="#8c959f"/>
+                <rect x="4" y="6" width="12" height="2" rx="1" fill="#8c959f" />
+                <rect x="4" y="11" width="18" height="2" rx="1" fill="#8c959f" />
+                <rect x="4" y="16" width="14" height="2" rx="1" fill="#8c959f" />
                 <path d="M4 21 Q5.5 19.5 7 21 Q8.5 22.5 10 21 Q11.5 19.5 13 21 Q14.5 22.5 16 21 Q17.5 19.5 19 21 Q20.5 22.5 22 21"
-                  stroke="#cf222e" strokeWidth="1.5" fill="none" strokeLinecap="round"/>
+                  stroke="#cf222e" strokeWidth="1.5" fill="none" strokeLinecap="round" />
               </svg>
             </div>
 
             <h1 className="font-mono font-bold text-xl tracking-tight text-[#1f2328]">Let&apos;s check your setup</h1>
             <p className="text-sm text-[#636c76] text-center mt-1 leading-relaxed mb-7">
-              Lintrvw uses your camera to analyze confidence and body language.
+              Lintrvw uses your camera to make it feel like a real interview.
             </p>
 
             <button
@@ -187,7 +187,7 @@ export default function InterviewSession() {
               <svg className="w-3 h-3 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
               </svg>
-              Camera data stays on your device. Never uploaded.
+              Camera data is never recorded.
             </p>
 
           </div>
@@ -225,11 +225,11 @@ export default function InterviewSession() {
         <div className="flex items-center gap-3">
           <div className="w-7 h-7 bg-[#f6f8fa] border border-[#d0d7de] rounded-md flex items-center justify-center">
             <svg width="14" height="14" viewBox="0 0 28 28" fill="none">
-              <rect x="4" y="6" width="12" height="2" rx="1" fill="#8c959f"/>
-              <rect x="4" y="11" width="18" height="2" rx="1" fill="#8c959f"/>
-              <rect x="4" y="16" width="14" height="2" rx="1" fill="#8c959f"/>
+              <rect x="4" y="6" width="12" height="2" rx="1" fill="#8c959f" />
+              <rect x="4" y="11" width="18" height="2" rx="1" fill="#8c959f" />
+              <rect x="4" y="16" width="14" height="2" rx="1" fill="#8c959f" />
               <path d="M4 21 Q5.5 19.5 7 21 Q8.5 22.5 10 21 Q11.5 19.5 13 21 Q14.5 22.5 16 21 Q17.5 19.5 19 21 Q20.5 22.5 22 21"
-                stroke="#cf222e" strokeWidth="1.5" fill="none" strokeLinecap="round"/>
+                stroke="#cf222e" strokeWidth="1.5" fill="none" strokeLinecap="round" />
             </svg>
           </div>
           <span className="font-mono font-bold text-sm">
@@ -276,9 +276,8 @@ export default function InterviewSession() {
       <div className="grid grid-cols-3 gap-5 flex-1 max-w-6xl w-full mx-auto px-6 py-5 pb-24 min-h-0">
 
         {/* Camera — 2 columns */}
-        <div className={`col-span-2 relative bg-[#0d1117] border rounded-lg overflow-hidden transition-shadow duration-300 ${
-          isSpeaking ? 'shadow-[0_0_0_2px_#0969da] border-[#0969da]' : volume > 0.02 ? 'shadow-[0_0_0_2px_#1a7f37] border-[#1a7f37]' : 'border-[#d0d7de]'
-        }`}>
+        <div className={`col-span-2 relative bg-[#0d1117] border rounded-lg overflow-hidden transition-shadow duration-300 ${isSpeaking ? 'shadow-[0_0_0_2px_#0969da] border-[#0969da]' : volume > 0.02 ? 'shadow-[0_0_0_2px_#1a7f37] border-[#1a7f37]' : 'border-[#d0d7de]'
+          }`}>
           <video
             ref={videoRef}
             autoPlay
@@ -380,11 +379,10 @@ export default function InterviewSession() {
                 setIsMuted(newMuted);
                 setMuted(newMuted);
               }}
-              className={`w-10 h-10 rounded-lg border flex items-center justify-center transition-all ${
-                isMuted
-                  ? 'bg-[#fff8f8] border-[rgba(207,34,46,0.3)] text-[#cf222e]'
-                  : 'bg-white border-[#d0d7de] text-[#1f2328] hover:bg-[#f6f8fa]'
-              }`}
+              className={`w-10 h-10 rounded-lg border flex items-center justify-center transition-all ${isMuted
+                ? 'bg-[#fff8f8] border-[rgba(207,34,46,0.3)] text-[#cf222e]'
+                : 'bg-white border-[#d0d7de] text-[#1f2328] hover:bg-[#f6f8fa]'
+                }`}
             >
               {isMuted ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
             </button>

@@ -51,16 +51,16 @@ export default function SetupPage() {
           <div className="text-center mb-7">
             <div className="w-10 h-10 bg-[#f6f8fa] border border-[#d0d7de] rounded-lg flex items-center justify-center mx-auto mb-5">
               <svg width="20" height="20" viewBox="0 0 28 28" fill="none">
-                <rect x="4" y="6" width="12" height="2" rx="1" fill="#8c959f"/>
-                <rect x="4" y="11" width="18" height="2" rx="1" fill="#8c959f"/>
-                <rect x="4" y="16" width="14" height="2" rx="1" fill="#8c959f"/>
+                <rect x="4" y="6" width="12" height="2" rx="1" fill="#8c959f" />
+                <rect x="4" y="11" width="18" height="2" rx="1" fill="#8c959f" />
+                <rect x="4" y="16" width="14" height="2" rx="1" fill="#8c959f" />
                 <path d="M4 21 Q5.5 19.5 7 21 Q8.5 22.5 10 21 Q11.5 19.5 13 21 Q14.5 22.5 16 21 Q17.5 19.5 19 21 Q20.5 22.5 22 21"
-                  stroke="#cf222e" strokeWidth="1.5" fill="none" strokeLinecap="round"/>
+                  stroke="#cf222e" strokeWidth="1.5" fill="none" strokeLinecap="round" />
               </svg>
             </div>
             <h1 className="font-mono font-bold text-xl tracking-tight text-[#1f2328]">Context Check</h1>
             <p className="text-sm text-[#636c76] text-center mt-1">
-              Upload your resume so the AI knows what to grill you on.
+              Upload your resume so the AI knows what to ask you.
             </p>
           </div>
 
@@ -105,11 +105,10 @@ export default function SetupPage() {
             <button
               type="submit"
               disabled={loading}
-              className={`w-full py-2.5 rounded-md font-mono font-semibold text-sm text-white flex items-center justify-center gap-2 transition-colors duration-150 ${
-                loading
+              className={`w-full py-2.5 rounded-md font-mono font-semibold text-sm text-white flex items-center justify-center gap-2 transition-colors duration-150 ${loading
                   ? 'bg-[#8c959f] border border-[rgba(27,31,36,0.1)] cursor-not-allowed opacity-80'
                   : 'bg-[#1a7f37] border border-[rgba(27,31,36,0.15)] hover:bg-[#1c8139]'
-              }`}
+                }`}
             >
               {loading ? (
                 <>

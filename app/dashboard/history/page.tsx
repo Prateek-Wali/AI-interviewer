@@ -172,10 +172,6 @@ export default function HistoryPage() {
                                 <ArrowLeft className="w-4 h-4" strokeWidth={2} />
                             </button>
                         </Link>
-                        <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-md bg-[#f6f8fa] border border-[#d0d7de] text-[#636c76] font-mono text-xs uppercase tracking-widest">
-                            <Sparkles className="w-3 h-3" />
-                            History
-                        </div>
                     </div>
                     <h1 className="font-mono font-bold text-3xl tracking-tight text-[#1f2328] mb-3">
                         Past <span className="text-[#1f2328]">Interviews</span>
