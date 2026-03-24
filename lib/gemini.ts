@@ -3,6 +3,21 @@ import { db } from "@/lib/prisma";
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const GEMINI_REST_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`;
 
+/**
+ * Sanitize a JSON string from Gemini that may contain trailing commas
+ * or other minor formatting issues that break JSON.parse.
+ */
+function sanitizeJson(raw: string): string {
+    // Strip markdown code fences if present
+    let cleaned = raw.trim();
+    if (cleaned.startsWith("```")) {
+        cleaned = cleaned.replace(/^```(?:json)?\s*/, "").replace(/```\s*$/, "").trim();
+    }
+    // Remove trailing commas before } or ]
+    cleaned = cleaned.replace(/,\s*([}\]])/g, "$1");
+    return cleaned;
+}
+
 // ─────────────────────────────────────────────
 // Types
 // ─────────────────────────────────────────────
@@ -57,8 +72,8 @@ export async function generateQuestionBank(
         throw new Error("No content in Gemini response");
     }
 
-    // Parse the JSON array from the response
-    const questions: GeneratedQuestion[] = JSON.parse(rawText);
+    // Parse the JSON array from the response (sanitize to handle trailing commas)
+    const questions: GeneratedQuestion[] = JSON.parse(sanitizeJson(rawText));
     console.log(`✅ Generated ${questions.length} questions from resume`);
 
     return questions;
@@ -200,7 +215,7 @@ export async function evaluateAnswer(
         throw new Error("No evaluation content in Gemini response");
     }
 
-    const evaluation: AnswerEvaluation = JSON.parse(rawText);
+    const evaluation: AnswerEvaluation = JSON.parse(sanitizeJson(rawText));
     console.log(`✅ Evaluation complete — Score: ${evaluation.overallScore}/100`);
 
     return evaluation;
@@ -342,7 +357,7 @@ Respond with ONLY a JSON object matching this schema:
         throw new Error("No report content in Gemini response");
     }
 
-    const report: InterviewReport = JSON.parse(rawText);
+    const report: InterviewReport = JSON.parse(sanitizeJson(rawText));
     console.log(`✅ Report generated — Overall: ${report.overallScore}/100`);
 
     return report;

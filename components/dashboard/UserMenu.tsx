@@ -34,9 +34,6 @@ export default function UserMenu({ email, avatarUrl }: UserMenuProps) {
         onClick={() => setIsOpen(!isOpen)}
         className="flex items-center gap-2 focus:outline-none"
       >
-        <span className="hidden md:block text-sm font-medium text-slate-700 mr-2">
-          {email}
-        </span>
         
         {avatarUrl ? (
           <div className="w-10 h-10 rounded-full overflow-hidden border border-slate-200">
@@ -64,10 +61,7 @@ export default function UserMenu({ email, avatarUrl }: UserMenuProps) {
           className="absolute right-0 mt-2 z-50 animate-in fade-in zoom-in-95 duration-200 bg-white border border-[#d0d7de] rounded-lg p-1 min-w-[180px]"
           style={{ boxShadow: '0 8px 24px rgba(140,149,159,0.2)' }}
         >
-          
-          <div className="text-[12px] text-[#636c76] px-3 py-2 border-b border-[#eaeef2] mb-1">
-            <p className="font-medium truncate">{email}</p>
-          </div>
+
 
           <a href="/dashboard/settings" className="flex items-center gap-2 text-[13px] px-3 py-1.5 rounded-md text-[#1f2328] hover:bg-[#f6f8fa] transition-colors">
             <Settings className="w-4 h-4 text-[#8c959f]" />
