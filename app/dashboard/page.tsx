@@ -13,6 +13,7 @@ export default async function DashboardPage() {
   // Default stats (for unauthenticated or new users)
   let stats = {
     totalInterviews: 0,
+    interviewsThisMonth: 0,
     avgScore: null as number | null,
     totalMinutes: 0,
     streak: 0,
@@ -33,6 +34,13 @@ export default async function DashboardPage() {
     // 1. Total completed interviews
     const totalInterviews = await db.interview.count({
       where: { userId, status: "COMPLETED" },
+    });
+
+    // 1.5 Total interviews this month (all statuses)
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const interviewsThisMonth = await db.interview.count({
+      where: { userId, createdAt: { gte: startOfMonth } },
     });
 
     // 2. All completed interviews (for score avg, total time, streak, recent)
@@ -112,7 +120,7 @@ export default async function DashboardPage() {
       }
     }
 
-    stats = { totalInterviews, avgScore, totalMinutes, streak };
+    stats = { totalInterviews, interviewsThisMonth, avgScore, totalMinutes, streak };
   }
 
   return (

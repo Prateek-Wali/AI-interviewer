@@ -40,7 +40,7 @@ const PricingSection = ({ user }: PricingProps) => {
 
             <ul className="space-y-4 mb-8 text-gh-muted text-sm font-inter">
               <li className="flex items-center gap-3">
-                <span className="text-gh-accent">✓</span> 1 AI Interview / mo
+                <span className="text-gh-accent">✓</span> 5 AI Interview / mo
               </li>
               <li className="flex items-center gap-3">
                 <span className="text-gh-accent">✓</span> Standard Difficulty
@@ -70,16 +70,16 @@ const PricingSection = ({ user }: PricingProps) => {
 
           {/* --- TIER 2: PRO (Disabled for now) --- */}
           <div className="relative group bg-white p-8 rounded-xl shadow-md transform md:scale-105 z-10 border-2 border-gh-accent">
-            <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-gh-accent text-white text-xs font-semibold px-3 py-0.5 rounded-full tracking-wide">
+            {/* ---<div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-gh-accent text-white text-xs font-semibold px-3 py-0.5 rounded-full tracking-wide">
               MOST POPULAR
-            </div>
+            </div>--- */}
 
             <div className="mb-6">
               <h4 className="font-mona-sans font-semibold text-xl tracking-[-0.01em] text-gh-text-light mb-2">Pro</h4>
               <p className="text-gh-muted text-sm h-10">Serious prep for active job seekers.</p>
             </div>
             <div className="flex items-baseline mb-8">
-              <span className="font-mona-sans font-bold text-[3rem] tracking-tightest text-gh-text-light">$19</span>
+              <span className="font-mona-sans font-bold text-[3rem] tracking-tightest text-gh-text-light">$7</span>
               <span className="text-gh-muted font-normal text-base ml-2">/ month</span>
             </div>
 

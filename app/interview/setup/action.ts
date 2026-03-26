@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { db } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import { generateQuestionBank, saveQuestionBank } from "@/lib/gemini";
+import { checkInterviewLimit } from "@/lib/limits";
 
 export async function uploadResume(formData: FormData) {
   // 1. Authenticate User
@@ -12,6 +13,12 @@ export async function uploadResume(formData: FormData) {
 
   if (!user) {
     throw new Error("Unauthorized");
+  }
+
+  // 1.5. Check interview limit
+  const limitCheck = await checkInterviewLimit(user.id);
+  if (!limitCheck.allowed) {
+    throw new Error(`You have reached your monthly limit of ${limitCheck.limit} interviews.`);
   }
 
   // 2. Get the file

@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
 import { db } from "@/lib/prisma";
+import { checkInterviewLimit } from "@/lib/limits";
 
 export async function POST(request: Request) {
   try {
@@ -10,6 +11,15 @@ export async function POST(request: Request) {
 
     if (!user || !user.email) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // --- Check interview limit ---
+    const limitCheck = await checkInterviewLimit(user.id);
+    if (!limitCheck.allowed) {
+      return NextResponse.json(
+        { error: `Monthly limit of ${limitCheck.limit} interviews reached.` },
+        { status: 403 }
+      );
     }
 
     const body = await request.json();
