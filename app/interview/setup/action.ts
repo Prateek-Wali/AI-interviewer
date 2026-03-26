@@ -27,6 +27,12 @@ export async function uploadResume(formData: FormData) {
     throw new Error("No file uploaded");
   }
 
+  // 2.5 Check file size (max 5MB)
+  const MAX_FILE_SIZE = 5 * 1024 * 1024;
+  if (file.size > MAX_FILE_SIZE) {
+    throw new Error("File size exceeds the 5MB limit. Please upload a smaller resume.");
+  }
+
   // 3. Extract Text based on file type
   let extractedText = "";
 

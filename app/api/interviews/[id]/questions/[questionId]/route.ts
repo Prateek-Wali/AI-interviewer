@@ -28,7 +28,17 @@ export async function PATCH(
     }
 
     // 2. Get IDs from params
-    const { questionId } = await params;
+    const { id: interviewId, questionId } = await params;
+
+    // Verify ownership
+    const interview = await db.interview.findUnique({
+      where: { id: interviewId },
+      select: { userId: true },
+    });
+
+    if (!interview || interview.userId !== user.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+    }
 
     // 3. Parse request body
     const body = await request.json();
@@ -158,9 +168,19 @@ export async function GET(
     }
 
     // 2. FIX: Await params
-    const { questionId } = await params;
+    const { id: interviewId, questionId } = await params;
 
     const { prisma } = await import("@/lib/db/interview-helpers");
+
+    // Verify ownership
+    const interview = await prisma.interview.findUnique({
+      where: { id: interviewId },
+      select: { userId: true },
+    });
+
+    if (!interview || interview.userId !== user.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+    }
 
     const question = await prisma.question.findUnique({
       where: { id: questionId },
