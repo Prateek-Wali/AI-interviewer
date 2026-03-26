@@ -1,10 +1,14 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 
 // Use your working API key
 const GEMINI_API_KEY = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
 const WS_URL = `wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent?key=${GEMINI_API_KEY}`;
 
-export function useGeminiLive() {
+interface UseGeminiLiveProps {
+    onInterviewEnd?: () => void;
+}
+
+export function useGeminiLive({ onInterviewEnd }: UseGeminiLiveProps = {}) {
     const [isConnected, setIsConnected] = useState(false);
     const [isSpeaking, setIsSpeaking] = useState(false);
     const [volume, setVolume] = useState(0);
@@ -31,6 +35,13 @@ export function useGeminiLive() {
     const isMutedRef = useRef<boolean>(false);     // Track user mute state
     const volumeThrottleRef = useRef<number>(0);   // Throttle volume updates
     const micStreamRef = useRef<MediaStream | null>(null);
+    const shouldEndInterviewRef = useRef<boolean>(false);
+    const onInterviewEndRef = useRef(onInterviewEnd);
+
+    // Keep callback fresh
+    useEffect(() => {
+        onInterviewEndRef.current = onInterviewEnd;
+    }, [onInterviewEnd]);
 
     // --- DATABASE HELPERS ---
 
@@ -159,6 +170,12 @@ export function useGeminiLive() {
                 setup: {
                     model: "models/gemini-2.5-flash-native-audio-preview-12-2025",
                     system_instruction: { parts: [{ text: systemInstruction }] },
+                    tools: [{
+                        function_declarations: [{
+                            name: "end_interview",
+                            description: "Call this function to end the interview session AFTER you have said the wrap up message to the user."
+                        }]
+                    }],
                     generation_config: {
                         response_modalities: ["AUDIO"],
                         speech_config: {
@@ -199,8 +216,27 @@ export function useGeminiLive() {
                     scheduleAudioChunk(audioBase64);
                 }
 
-                // C. Handle Turn Complete
+                // C. Handle Function Call
+                const parts = data.serverContent?.modelTurn?.parts;
+                if (parts) {
+                    for (const part of parts) {
+                        if (part.functionCall && part.functionCall.name === "end_interview") {
+                            console.log("🛑 AI requested to end the interview via tool call");
+                            shouldEndInterviewRef.current = true;
+                        }
+                    }
+                }
+
+                // D. Handle Turn Complete
                 if (data.serverContent?.turnComplete) {
+                    // Check if interview should end (AI wrapped up)
+                    if (shouldEndInterviewRef.current && onInterviewEndRef.current) {
+                        if (!isSpeakingRef.current) {
+                            onInterviewEndRef.current();
+                        }
+                        return; // Stop processing further turn completion logic
+                    }
+
                     // AI finished speaking -> Save a Question Record
                     if (id) {
                         // Only create a new question record if the previous one was answered
@@ -338,6 +374,11 @@ export function useGeminiLive() {
                 setIsSpeaking(false);
                 // ✅ FIX 4: Ungate mic when AI finishes speaking
                 isSpeakingRef.current = false;
+
+                // End interview if a disconnect was requested
+                if (shouldEndInterviewRef.current && onInterviewEndRef.current) {
+                    onInterviewEndRef.current();
+                }
             }
         };
     };

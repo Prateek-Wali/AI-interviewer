@@ -2,6 +2,10 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useState, useEffect } from "react";
+import { createClient } from "@/lib/supabase/client";
+import UserMenu from "@/components/dashboard/UserMenu";
+import type { User } from "@supabase/supabase-js";
 
 function LintrvwLogo() {
   return (
@@ -43,6 +47,28 @@ function LintrvwLogo() {
 
 export default function PublicNavbar() {
   const pathname = usePathname();
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const supabase = createClient();
+    
+    // Get initial session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+      setLoading(false);
+    });
+
+    // Listen for auth changes
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
   if (pathname.startsWith("/dashboard") || pathname.startsWith("/interview")) {
     return null;
   }
@@ -62,12 +88,25 @@ export default function PublicNavbar() {
       </div>
 
       {/* CTA */}
-      <div className="flex gap-4">
-        <Link href="/login">
-          <button className="border border-gh-border text-gh-text-light hover:bg-slate-50 text-sm font-medium px-4 py-2 rounded-md transition-all">
-            Login / Sign Up
-          </button>
-        </Link>
+      <div className="flex items-center gap-4">
+        {!loading && (
+          user ? (
+            <>
+              <Link href="/dashboard" className="hidden sm:block">
+                <button className="bg-gh-text-light text-white hover:bg-slate-800 text-sm font-medium px-4 py-2 rounded-md transition-all shadow-sm">
+                  Go to Dashboard
+                </button>
+              </Link>
+              <UserMenu email={user.email || ""} avatarUrl={user.user_metadata?.avatar_url} />
+            </>
+          ) : (
+            <Link href="/login">
+              <button className="border border-gh-border text-gh-text-light hover:bg-slate-50 text-sm font-medium px-4 py-2 rounded-md transition-all">
+                Login / Sign Up
+              </button>
+            </Link>
+          )
+        )}
       </div>
 
     </nav>
