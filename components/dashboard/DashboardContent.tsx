@@ -35,6 +35,7 @@ interface DashboardContentProps {
   firstName: string;
   stats: {
     totalInterviews: number;
+    interviewsThisMonth: number;
     avgScore: number | null;
     totalMinutes: number;
     streak: number;
@@ -195,8 +196,11 @@ export default function DashboardContent({
               <Target className="w-3.5 h-3.5" />
               Interviews
             </div>
-            <div className="font-mono font-bold text-3xl tracking-[-0.03em] text-[#1f2328]">{stats.totalInterviews}</div>
-            <div className="text-xs text-[#8c959f] font-mono mt-1">Total completed</div>
+            <div className="flex items-baseline gap-1">
+              <div className="font-mono font-bold text-3xl tracking-[-0.03em] text-[#1f2328]">{stats.interviewsThisMonth}</div>
+              <div className="font-mono text-lg text-[#8c959f]">/ 10</div>
+            </div>
+            <div className="text-xs text-[#8c959f] font-mono mt-1">Practiced this month</div>
           </div>
           {/* Card 2: Avg Score */}
           <div className="bg-white border border-[#d0d7de] rounded-lg p-4 hover:border-[#8c959f] transition-colors duration-150">
