@@ -21,6 +21,17 @@ export async function POST(
     // 2. CHANGE THIS LINE: await the params to get the ID
     const { id: interviewId } = await params;
 
+    // Verify ownership
+    const { db } = await import("@/lib/prisma");
+    const interview = await db.interview.findUnique({
+      where: { id: interviewId },
+      select: { userId: true },
+    });
+
+    if (!interview || interview.userId !== user.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+    }
+
     if (!questionText || typeof questionText !== "string") {
       return NextResponse.json(
         { error: "questionText is required and must be a string" },

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { updateInterviewStatus } from "@/lib/db/interview-helpers";
+import { db } from "@/lib/prisma";
 
 /**
  * POST /api/interviews/[id]/end
@@ -20,6 +21,17 @@ export async function POST(
         }
 
         const { id: interviewId } = await params;
+
+        // Verify ownership
+        const interview = await db.interview.findUnique({
+            where: { id: interviewId },
+            select: { userId: true },
+        });
+
+        if (!interview || interview.userId !== user.id) {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+        }
+
         const body = await request.json();
         const endedAt = body.endedAt ? new Date(body.endedAt) : new Date();
 
