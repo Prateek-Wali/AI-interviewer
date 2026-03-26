@@ -14,6 +14,8 @@ export default function InterviewSession() {
   const [status, setStatus] = useState("idle");
 
   const [currentInterviewId, setCurrentInterviewId] = useState<string | null>(null);
+  const handleEndSessionRef = useRef<(() => void) | null>(null);
+
   const {
     connect,
     disconnect,
@@ -22,7 +24,11 @@ export default function InterviewSession() {
     isConnected,
     isSpeaking,
     volume
-  } = useGeminiLive();
+  } = useGeminiLive({
+    onInterviewEnd: useCallback(() => {
+      if (handleEndSessionRef.current) handleEndSessionRef.current();
+    }, [])
+  });
 
   // Timer state — declared after useGeminiLive so isConnected is available
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
@@ -132,6 +138,10 @@ export default function InterviewSession() {
     // 4. Redirect to report page
     router.push(`/interview/${currentInterviewId}/report`);
   };
+
+  useEffect(() => {
+    handleEndSessionRef.current = handleEndSession;
+  });
 
   useEffect(() => {
     if (videoRef.current && stream) {
