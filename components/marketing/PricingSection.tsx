@@ -40,7 +40,7 @@ const PricingSection = ({ user }: PricingProps) => {
 
             <ul className="space-y-4 mb-8 text-gh-muted text-sm font-inter">
               <li className="flex items-center gap-3">
-                <span className="text-gh-accent">✓</span> 5 AI Interview / mo
+                <span className="text-gh-accent">✓</span> 10 AI Interview / mo
               </li>
               <li className="flex items-center gap-3">
                 <span className="text-gh-accent">✓</span> Standard Difficulty
@@ -85,7 +85,7 @@ const PricingSection = ({ user }: PricingProps) => {
 
             <ul className="space-y-4 mb-8 text-gh-muted text-sm font-inter">
               <li className="flex items-center gap-3">
-                <span className="text-gh-accent">✓</span> 10 AI Interviews / mo
+                <span className="text-gh-accent">✓</span> 20 AI Interviews / mo
               </li>
               <li className="flex items-center gap-3">
                 <span className="text-gh-accent">✓</span> Hard Difficulty
