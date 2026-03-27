@@ -1,12 +1,14 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { uploadResume } from "./action";
 
 export default function SetupPage() {
   const [loading, setLoading] = useState(false);
   const [fileName, setFileName] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const router = useRouter();
 
   // We wrap the server action to handle loading state on the client
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -16,9 +18,19 @@ export default function SetupPage() {
 
     try {
       const formData = new FormData(event.currentTarget);
-      await uploadResume(formData); // This will redirect on success
+      const result = await uploadResume(formData);
+      
+      if (result?.error) {
+        setError(result.error);
+        setLoading(false);
+        return;
+      }
+      
+      if (result?.success) {
+        router.push("/interview");
+      }
     } catch (err: any) {
-      setError(err?.message || "Failed to process resume. Please try again.");
+      setError("Failed to process resume. Please try again or check your connection.");
       setLoading(false);
     }
   };

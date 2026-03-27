@@ -2,7 +2,6 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { db } from "@/lib/prisma";
-import { redirect } from "next/navigation";
 import { generateQuestionBank, saveQuestionBank } from "@/lib/gemini";
 import { checkInterviewLimit } from "@/lib/limits";
 
@@ -12,25 +11,25 @@ export async function uploadResume(formData: FormData) {
   const { data: { user } } = await supabase.auth.getUser();
 
   if (!user) {
-    throw new Error("Unauthorized");
+    return { error: "Unauthorized" };
   }
 
   // 1.5. Check interview limit
   const limitCheck = await checkInterviewLimit(user.id);
   if (!limitCheck.allowed) {
-    throw new Error(`You have reached your monthly limit of ${limitCheck.limit} interviews.`);
+    return { error: `You have reached your monthly limit of ${limitCheck.limit} interviews.` };
   }
 
   // 2. Get the file
   const file = formData.get("resume") as File;
   if (!file) {
-    throw new Error("No file uploaded");
+    return { error: "No file uploaded" };
   }
 
   // 2.5 Check file size (max 5MB)
   const MAX_FILE_SIZE = 5 * 1024 * 1024;
   if (file.size > MAX_FILE_SIZE) {
-    throw new Error("File size exceeds the 5MB limit. Please upload a smaller resume.");
+    return { error: "File size exceeds the 5MB limit. Please upload a smaller resume." };
   }
 
   // 3. Extract Text based on file type
@@ -46,14 +45,14 @@ export async function uploadResume(formData: FormData) {
   } else if (file.type === "text/plain") {
     extractedText = await file.text();
   } else {
-    throw new Error("Only PDF or TXT files are supported");
+    return { error: "Only PDF or TXT files are supported" };
   }
 
   // 4. Clean the text
   extractedText = extractedText.replace(/\n+/g, " ").trim();
 
   if (!extractedText || extractedText.length < 50) {
-    throw new Error("Could not extract enough text from the resume. Please try a different file.");
+    return { error: "Could not extract enough text from the resume. Please try a different file." };
   }
 
   console.log(`📄 Resume parsed: ${extractedText.length} characters extracted`);
@@ -78,6 +77,6 @@ export async function uploadResume(formData: FormData) {
   await saveQuestionBank(user.id, questions);
   console.log(`✅ Question bank ready! ${questions.length} questions saved.`);
 
-  // 7. Redirect to Interview (only runs if everything above succeeded)
-  redirect("/interview");
+  // 7. Return success so client can redirect
+  return { success: true };
 }

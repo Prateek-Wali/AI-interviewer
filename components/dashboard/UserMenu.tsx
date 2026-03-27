@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import Image from 'next/image';
-import { Settings, LogOut } from 'lucide-react';
+import { LogOut } from 'lucide-react';
 
 interface UserMenuProps {
   email: string;
@@ -63,10 +63,7 @@ export default function UserMenu({ email, avatarUrl }: UserMenuProps) {
         >
 
 
-          <a href="/dashboard/settings" className="flex items-center gap-2 text-[13px] px-3 py-1.5 rounded-md text-[#1f2328] hover:bg-[#f6f8fa] transition-colors">
-            <Settings className="w-4 h-4 text-[#8c959f]" />
-            Settings
-          </a>
+
           
           <form action="/auth/signout" method="post" className="mt-1">
              <button 
