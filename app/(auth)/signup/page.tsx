@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -9,21 +9,10 @@ export default function Signup() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const [resendLoading, setResendLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState(false);
-  const [timeLeft, setTimeLeft] = useState(0);
 
   const router = useRouter();
   const supabase = createClient();
-
-  // Timer logic
-  useEffect(() => {
-    if (timeLeft > 0) {
-      const timer = setTimeout(() => setTimeLeft(timeLeft - 1), 1000);
-      return () => clearTimeout(timer);
-    }
-  }, [timeLeft]);
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -43,9 +32,8 @@ export default function Signup() {
       setError(error.message);
       setLoading(false);
     } else {
-      setSuccess(true);
-      setTimeLeft(120);
-      setLoading(false);
+      router.push("/pricing");
+      router.refresh();
     }
   };
 
@@ -67,67 +55,7 @@ export default function Signup() {
     setLoading(false);
   };
 
-  const handleResend = async () => {
-    setResendLoading(true);
-    setError(null);
 
-    const { error } = await supabase.auth.resend({
-      type: 'signup',
-      email: email,
-      options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback?next=/pricing`,
-      },
-    });
-
-    if (error) {
-      setError("Error resending: " + error.message);
-    } else {
-      setTimeLeft(120);
-      alert("Email resent! Please check your inbox.");
-    }
-    setResendLoading(false);
-  };
-
-  // --- SUCCESS SCREEN (Check Email) ---
-  if (success) {
-    return (
-      <main className="min-h-screen flex items-center justify-center p-4 overflow-hidden relative">
-        {/* Master Background */}
-        <div className="fixed inset-0 -z-50 h-full w-full bg-white">
-          <div className="absolute h-full w-full bg-[linear-gradient(to_right,#e2e8f0_1px,transparent_1px),linear-gradient(to_bottom,#e2e8f0_1px,transparent_1px)] bg-[size:24px_24px]"></div>
-          <div className="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] bg-blue-100/80 rounded-full mix-blend-multiply filter blur-[80px] opacity-70 animate-drift-slow"></div>
-          <div className="absolute bottom-[-10%] right-[-10%] w-[600px] h-[600px] bg-purple-100/80 rounded-full mix-blend-multiply filter blur-[80px] opacity-70 animate-drift-medium"></div>
-          <div className="absolute top-[40%] left-[40%] w-[400px] h-[400px] bg-cyan-50/80 rounded-full mix-blend-multiply filter blur-[80px] opacity-70 animate-drift-fast"></div>
-        </div>
-
-        <div className="w-full max-w-md bg-white/80 backdrop-blur-md rounded-2xl shadow-xl border border-slate-200 p-8 text-center relative z-10">
-          <div className="w-16 h-16 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-6 text-3xl">
-            ✉️
-          </div>
-          <h2 className="text-2xl font-bold text-slate-900 mb-2">Check your email</h2>
-          <p className="text-slate-600 mb-8">
-            We sent a confirmation link to <span className="font-bold text-slate-900">{email}</span>.
-            <br />
-            Click it to activate your account.
-          </p>
-
-          <button
-            onClick={handleResend}
-            disabled={timeLeft > 0 || resendLoading}
-            className="text-blue-600 font-bold hover:underline disabled:text-slate-400 disabled:no-underline"
-          >
-            {resendLoading ? "Sending..." : timeLeft > 0 ? `Resend email in ${timeLeft}s` : "Resend Email"}
-          </button>
-
-          <div className="mt-8 pt-6 border-t border-slate-100">
-            <button onClick={() => setSuccess(false)} className="text-sm text-slate-400 hover:text-slate-600">
-              Use a different email
-            </button>
-          </div>
-        </div>
-      </main>
-    );
-  }
 
   // --- MAIN SIGNUP FORM ---
   return (
