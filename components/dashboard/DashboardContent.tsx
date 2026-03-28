@@ -175,7 +175,7 @@ export default function DashboardContent({
               Welcome back, <span className="text-[#1a7f37]">{firstName}</span>
             </h1>
             <p className="text-sm text-[#636c76] mt-1">
-              Your personal AI interview coach is ready. Pick up where you left off or start a new session.
+              Your personal AI interview coach is ready. Start a new session.
             </p>
           </div>
           <Link href="/interview/setup">

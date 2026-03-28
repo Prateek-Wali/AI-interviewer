@@ -180,15 +180,12 @@ export default function Home() {
                                 <div className="w-32 h-32 rounded-full overflow-hidden border-4 border-slate-100 shadow-inner bg-slate-200">
                                     <img src="/prateek_pic.jpg" alt="Prateek" className="w-full h-full object-cover object-top" />
                                 </div>
-                                <div className="absolute bottom-0 right-0 bg-gh-text-light text-white text-xs font-medium tracking-wide px-3 py-1 rounded-full border-2 border-white">
-                                    CEO
-                                </div>
                             </div>
 
                             <h3 className="font-mona-sans font-semibold tracking-tight text-xl text-gh-text-light">Prateek Wali</h3>
                             <p className="text-gh-muted font-medium text-sm mb-4">Founder</p>
                             <p className="text-slate-600 text-sm leading-relaxed max-w-sm">
-                                CS Student at NJIT. I realized that passing the interview process was harder than the job itself, so I made this webapp to help students to be able to feel ready for the interview.
+                                Computer Science student at NJIT
                             </p>
                         </div>
 
@@ -198,15 +195,12 @@ export default function Home() {
                                 <div className="w-32 h-32 rounded-full overflow-hidden border-4 border-slate-100 shadow-inner bg-slate-200">
                                     <img src="/Shreeya_pic.jpg" alt="Shreeya" className="w-full h-full object-cover" />
                                 </div>
-                                <div className="absolute bottom-0 right-0 bg-gh-text-light text-white text-xs font-medium tracking-wide px-3 py-1 rounded-full border-2 border-white">
-                                    CTO
-                                </div>
                             </div>
 
                             <h3 className="font-mona-sans font-semibold tracking-tight text-xl text-gh-text-light">Shreeya Gupta</h3>
                             <p className="text-gh-muted font-medium text-sm mb-4">Co-Founder</p>
                             <p className="text-slate-600 text-sm leading-relaxed max-w-sm">
-                                Computer Engineering student at UMD.
+                                Computer Engineering student at UMD
                             </p>
                         </div>
 
