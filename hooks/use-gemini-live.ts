@@ -6,9 +6,10 @@ const WS_URL = `wss://generativelanguage.googleapis.com/ws/google.ai.generativel
 
 interface UseGeminiLiveProps {
     onInterviewEnd?: () => void;
+    expectedQuestionCount?: number;
 }
 
-export function useGeminiLive({ onInterviewEnd }: UseGeminiLiveProps = {}) {
+export function useGeminiLive({ onInterviewEnd, expectedQuestionCount = 0 }: UseGeminiLiveProps = {}) {
     const [isConnected, setIsConnected] = useState(false);
     const [isSpeaking, setIsSpeaking] = useState(false);
     const [volume, setVolume] = useState(0);
@@ -36,12 +37,26 @@ export function useGeminiLive({ onInterviewEnd }: UseGeminiLiveProps = {}) {
     const volumeThrottleRef = useRef<number>(0);   // Throttle volume updates
     const micStreamRef = useRef<MediaStream | null>(null);
     const shouldEndInterviewRef = useRef<boolean>(false);
+    const hasEndedInterviewRef = useRef<boolean>(false);
+    const answeredQuestionCountRef = useRef<number>(0);
+    const expectedQuestionCountRef = useRef<number>(expectedQuestionCount);
     const onInterviewEndRef = useRef(onInterviewEnd);
 
     // Keep callback fresh
     useEffect(() => {
         onInterviewEndRef.current = onInterviewEnd;
     }, [onInterviewEnd]);
+
+    useEffect(() => {
+        expectedQuestionCountRef.current = expectedQuestionCount;
+    }, [expectedQuestionCount]);
+
+    const finishInterview = useCallback(() => {
+        if (hasEndedInterviewRef.current) return;
+        hasEndedInterviewRef.current = true;
+        shouldEndInterviewRef.current = false;
+        onInterviewEndRef.current?.();
+    }, []);
 
     // --- DATABASE HELPERS ---
 
@@ -97,6 +112,7 @@ export function useGeminiLive({ onInterviewEnd }: UseGeminiLiveProps = {}) {
                 // Don't mark as answered — next turnComplete will reuse the same question
             } else {
                 questionAnsweredRef.current = true;
+                answeredQuestionCountRef.current += 1;
                 console.log("✅ Answer Saved to DB");
             }
         } catch (err) {
@@ -147,6 +163,13 @@ export function useGeminiLive({ onInterviewEnd }: UseGeminiLiveProps = {}) {
 
     // --- CONNECT ---
     const connect = useCallback((systemInstruction: string, id?: string) => {
+        hasEndedInterviewRef.current = false;
+        shouldEndInterviewRef.current = false;
+        answeredQuestionCountRef.current = 0;
+        questionAnsweredRef.current = false;
+        currentQuestionIdRef.current = null;
+        userTranscriptRef.current = "";
+
         if (id) {
             setInterviewId(id);
             interviewIdRef.current = id;
@@ -223,22 +246,49 @@ export function useGeminiLive({ onInterviewEnd }: UseGeminiLiveProps = {}) {
                         if (part.functionCall && part.functionCall.name === "end_interview") {
                             console.log("🛑 AI requested to end the interview via tool call");
                             shouldEndInterviewRef.current = true;
+
+                            // Send function response to acknowledge the tool call
+                            // so Gemini completes the turn cleanly
+                            if (ws.readyState === WebSocket.OPEN) {
+                                ws.send(JSON.stringify({
+                                    tool_response: {
+                                        function_responses: [{
+                                            id: part.functionCall.id || "end_interview",
+                                            name: "end_interview",
+                                            response: { result: { success: true } }
+                                        }]
+                                    }
+                                }));
+                            }
                         }
                     }
                 }
 
                 // D. Handle Turn Complete
                 if (data.serverContent?.turnComplete) {
-                    // Check if interview should end (AI wrapped up)
-                    if (shouldEndInterviewRef.current && onInterviewEndRef.current) {
+                    // If interview is ending, don't save questions or start listening.
+                    // The audio onended callback (or safety timeout) will trigger onInterviewEnd.
+                    if (shouldEndInterviewRef.current) {
+                        console.log("🛑 Turn complete received — interview ending, skipping question save");
+                        // If AI audio already finished, end immediately
                         if (!isSpeakingRef.current) {
-                            onInterviewEndRef.current();
+                            finishInterview();
                         }
-                        return; // Stop processing further turn completion logic
+                        return;
                     }
 
                     // AI finished speaking -> Save a Question Record
                     if (id) {
+                        const expectedCount = expectedQuestionCountRef.current;
+                        if (expectedCount > 0 && answeredQuestionCountRef.current >= expectedCount) {
+                            console.log("🏁 All expected questions answered — ending interview without waiting for another turn");
+                            shouldEndInterviewRef.current = true;
+                            if (!isSpeakingRef.current) {
+                                finishInterview();
+                            }
+                            return;
+                        }
+
                         // Only create a new question record if the previous one was answered
                         // (If not answered, this is a repeat/clarification — reuse the same question)
                         if (questionAnsweredRef.current || !currentQuestionIdRef.current) {
@@ -376,14 +426,27 @@ export function useGeminiLive({ onInterviewEnd }: UseGeminiLiveProps = {}) {
                 isSpeakingRef.current = false;
 
                 // End interview if a disconnect was requested
-                if (shouldEndInterviewRef.current && onInterviewEndRef.current) {
-                    onInterviewEndRef.current();
+                if (shouldEndInterviewRef.current) {
+                    finishInterview();
                 }
             }
         };
+
+        // Safety net: if the interview should end, set a timeout to trigger it
+        // in case the onended callback doesn't fire (e.g., audio context issues)
+        if (shouldEndInterviewRef.current) {
+            const bufferDurationMs = buffer.duration * 1000;
+            setTimeout(() => {
+                if (shouldEndInterviewRef.current) {
+                    console.log("⏰ Safety timeout fired — ending interview");
+                    finishInterview();
+                }
+            }, bufferDurationMs + 2000); // Wait for audio + 2s grace period
+        }
     };
 
     const disconnect = useCallback(() => {
+        shouldEndInterviewRef.current = false;
         wsRef.current?.close();
         inputSourceRef.current?.disconnect();
         workletNodeRef.current?.disconnect();

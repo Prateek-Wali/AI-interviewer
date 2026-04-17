@@ -12,6 +12,7 @@ export default function InterviewSession() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isMuted, setIsMuted] = useState(false);
   const [status, setStatus] = useState("idle");
+  const [expectedQuestionCount, setExpectedQuestionCount] = useState(0);
 
   const [currentInterviewId, setCurrentInterviewId] = useState<string | null>(null);
   const handleEndSessionRef = useRef<(() => void) | null>(null);
@@ -25,6 +26,7 @@ export default function InterviewSession() {
     isSpeaking,
     volume
   } = useGeminiLive({
+    expectedQuestionCount,
     onInterviewEnd: useCallback(() => {
       if (handleEndSessionRef.current) handleEndSessionRef.current();
     }, [])
@@ -99,6 +101,7 @@ export default function InterviewSession() {
 
       // Track interview ID for later redirect to report
       setCurrentInterviewId(data.interviewId);
+      setExpectedQuestionCount(Array.isArray(data.questions) ? data.questions.length : 0);
 
       // STEP C: Connect Gemini
       console.log("3. Connecting to Gemini...");
