@@ -1,16 +1,42 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
+import { matchBankQuestion } from '@/lib/question-matching';
 
 // Use your working API key
 const GEMINI_API_KEY = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
 const WS_URL = `wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent?key=${GEMINI_API_KEY}`;
+
+// Gemini Live kills the WS at ~10 min regardless of turn state, so recovery
+// must be re-entrant: a long interview can go through several reconnects
+const MAX_RECONNECT_ATTEMPTS = 5;
+
+// Sent as the kickoff turn when resuming with a native session handle —
+// the server restores conversation state, we just nudge the AI to continue
+const RECONNECT_NUDGE = "(SYSTEM NOTE: The audio connection dropped briefly and has just been restored. Continue the interview exactly where you left off. If you were in the middle of asking a question, ask that question again in full. Do NOT re-introduce yourself, do NOT restart the interview, and do NOT mention this note.)";
 
 interface UseGeminiLiveProps {
     onInterviewEnd?: () => void;
     expectedQuestionCount?: number;
 }
 
+interface ConnectOptions {
+    // Bank question texts — used to tell real questions apart from
+    // quality-gate follow-ups when tracking progress
+    bankQuestions?: string[];
+    // Set when resuming a previous session (e.g. after page refresh):
+    // indices of bank questions that already have answers
+    answeredBankIndices?: number[];
+    pendingQuestionId?: string | null;
+}
+
+interface OpenSocketOptions {
+    systemInstruction: string;
+    resumeHandle: string | null;
+    kickoffText: string | null;
+}
+
 export function useGeminiLive({ onInterviewEnd, expectedQuestionCount = 0 }: UseGeminiLiveProps = {}) {
     const [isConnected, setIsConnected] = useState(false);
+    const [isReconnecting, setIsReconnecting] = useState(false);
     const [isSpeaking, setIsSpeaking] = useState(false);
     const [volume, setVolume] = useState(0);
 
@@ -42,6 +68,22 @@ export function useGeminiLive({ onInterviewEnd, expectedQuestionCount = 0 }: Use
     const expectedQuestionCountRef = useRef<number>(expectedQuestionCount);
     const onInterviewEndRef = useRef(onInterviewEnd);
 
+    // --- Bank-question progress tracking ---
+    // Progress counts bank questions completed, NOT answered rows: the AI's
+    // quality-gate follow-ups also create rows, and counting those made the
+    // auto-end fire after 3 real questions (8 rows) in a 6-minute interview
+    const bankQuestionsRef = useRef<string[]>([]);
+    const answeredBankIndicesRef = useRef<Set<number>>(new Set());
+    const pendingBankIndexRef = useRef<number>(-1); // bank index of the question awaiting an answer, -1 = follow-up
+
+    // --- Session recovery refs ---
+    const systemInstructionRef = useRef<string>("");
+    const resumeHandleRef = useRef<string | null>(null);   // Gemini native session resumption token
+    const intentionalCloseRef = useRef<boolean>(false);    // Set only by disconnect()
+    const reconnectAttemptsRef = useRef<number>(0);
+    const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const outputTranscriptRef = useRef<string>("");        // AI speech transcription for the current turn
+
     // Keep callback fresh
     useEffect(() => {
         onInterviewEndRef.current = onInterviewEnd;
@@ -51,8 +93,9 @@ export function useGeminiLive({ onInterviewEnd, expectedQuestionCount = 0 }: Use
         expectedQuestionCountRef.current = expectedQuestionCount;
     }, [expectedQuestionCount]);
 
-    const finishInterview = useCallback(() => {
+    const finishInterview = useCallback((reason: string) => {
         if (hasEndedInterviewRef.current) return;
+        console.log(`🏁 Ending interview — reason: ${reason}`);
         hasEndedInterviewRef.current = true;
         shouldEndInterviewRef.current = false;
         onInterviewEndRef.current?.();
@@ -61,13 +104,13 @@ export function useGeminiLive({ onInterviewEnd, expectedQuestionCount = 0 }: Use
     // --- DATABASE HELPERS ---
 
     // 1. Save Question (We call this when AI finishes speaking)
-    const saveQuestionToDB = async (intId: string) => {
+    const saveQuestionToDB = async (intId: string, questionText: string) => {
         try {
             const res = await fetch(`/api/interviews/${intId}/questions`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    questionText: "AI Question (Audio)",
+                    questionText,
                     questionType: "Technical"
                 })
             });
@@ -112,8 +155,14 @@ export function useGeminiLive({ onInterviewEnd, expectedQuestionCount = 0 }: Use
                 // Don't mark as answered — next turnComplete will reuse the same question
             } else {
                 questionAnsweredRef.current = true;
-                answeredQuestionCountRef.current += 1;
-                console.log("✅ Answer Saved to DB");
+                const bankIdx = pendingBankIndexRef.current;
+                if (bankIdx >= 0) {
+                    answeredBankIndicesRef.current.add(bankIdx);
+                    answeredQuestionCountRef.current = answeredBankIndicesRef.current.size;
+                    console.log(`✅ Answer Saved to DB (bank question ${bankIdx + 1} — progress ${answeredQuestionCountRef.current}/${expectedQuestionCountRef.current})`);
+                } else {
+                    console.log("✅ Answer Saved to DB (follow-up question — not counted toward progress)");
+                }
             }
         } catch (err) {
             console.error("❌ Failed to save answer:", err);
@@ -160,39 +209,24 @@ export function useGeminiLive({ onInterviewEnd, expectedQuestionCount = 0 }: Use
         }
     };
 
+    // --- WEBSOCKET LIFECYCLE ---
+    // openSocket / attemptReconnect are mutually recursive (hoisted function
+    // declarations). Everything they touch lives in refs, so the closures
+    // from the first render stay valid across re-renders.
 
-    // --- CONNECT ---
-    const connect = useCallback((systemInstruction: string, id?: string) => {
-        hasEndedInterviewRef.current = false;
-        shouldEndInterviewRef.current = false;
-        answeredQuestionCountRef.current = 0;
-        questionAnsweredRef.current = false;
-        currentQuestionIdRef.current = null;
-        userTranscriptRef.current = "";
-
-        if (id) {
-            setInterviewId(id);
-            interviewIdRef.current = id;
-        }
-
-        if (!systemInstruction || systemInstruction.trim() === "") {
-            console.error("❌ ABORTING: No system instructions.");
-            return;
-        }
-
-        if (wsRef.current?.readyState === WebSocket.OPEN) return;
-
+    function openSocket(opts: OpenSocketOptions) {
         const ws = new WebSocket(WS_URL);
         wsRef.current = ws;
+        let sawSetupComplete = false;
 
         ws.onopen = () => {
-            console.log('✅ WebSocket OPEN');
+            console.log(opts.resumeHandle ? '✅ WebSocket OPEN (resuming session)' : '✅ WebSocket OPEN');
             setIsConnected(true);
 
             const setupMsg = {
                 setup: {
                     model: "models/gemini-2.5-flash-native-audio-preview-12-2025",
-                    system_instruction: { parts: [{ text: systemInstruction }] },
+                    system_instruction: { parts: [{ text: opts.systemInstruction }] },
                     tools: [{
                         function_declarations: [{
                             name: "end_interview",
@@ -204,7 +238,13 @@ export function useGeminiLive({ onInterviewEnd, expectedQuestionCount = 0 }: Use
                         speech_config: {
                             voice_config: { prebuilt_voice_config: { voice_name: "Puck" } }
                         }
-                    }
+                    },
+                    // Capture the AI's spoken words so real question text reaches the DB
+                    output_audio_transcription: {},
+                    // Lifts the 15-min audio session cap
+                    context_window_compression: { sliding_window: {} },
+                    // Enables resumption tokens; passing a handle restores the prior session
+                    session_resumption: opts.resumeHandle ? { handle: opts.resumeHandle } : {}
                 }
             };
 
@@ -222,21 +262,49 @@ export function useGeminiLive({ onInterviewEnd, expectedQuestionCount = 0 }: Use
             try {
                 const data = JSON.parse(textData);
 
-                // A. Handle Setup Complete — kick off the AI to speak first
+                // A. Handle Setup Complete — kick off / resume the conversation
                 if (data.setupComplete) {
-                    console.log("✅ Gemini session ready, triggering AI to start...");
-                    ws.send(JSON.stringify({
-                        client_content: {
-                            turns: [{ role: "user", parts: [{ text: "Begin the interview." }] }],
-                            turn_complete: true
-                        }
-                    }));
+                    console.log("✅ Gemini session ready");
+                    sawSetupComplete = true;
+                    reconnectAttemptsRef.current = 0;
+                    setIsReconnecting(false);
+
+                    if (opts.kickoffText) {
+                        ws.send(JSON.stringify({
+                            client_content: {
+                                turns: [{ role: "user", parts: [{ text: opts.kickoffText }] }],
+                                turn_complete: true
+                            }
+                        }));
+                    }
+                }
+
+                // Store the latest resumption token — used to restore the
+                // session when Gemini drops the connection (~10 min cap)
+                if (data.sessionResumptionUpdate) {
+                    const update = data.sessionResumptionUpdate;
+                    if (update.resumable && update.newHandle) {
+                        resumeHandleRef.current = update.newHandle;
+                    }
+                }
+
+                // Server announced it will close the connection soon —
+                // reconnect proactively instead of waiting for the hard kill
+                if (data.goAway) {
+                    console.warn("⚠️ Gemini sent goAway (timeLeft:", data.goAway.timeLeft, ") — reconnecting proactively");
+                    ws.close(); // unintentional close → onclose drives the resume
+                    return;
                 }
 
                 // B. Handle Audio (Standard)
                 if (data.serverContent?.modelTurn?.parts?.[0]?.inlineData) {
                     const audioBase64 = data.serverContent.modelTurn.parts[0].inlineData.data;
                     scheduleAudioChunk(audioBase64);
+                }
+
+                // Accumulate the AI's speech transcription for this turn
+                if (data.serverContent?.outputTranscription?.text) {
+                    outputTranscriptRef.current += data.serverContent.outputTranscription.text;
                 }
 
                 // C. Handle Function Call
@@ -266,35 +334,49 @@ export function useGeminiLive({ onInterviewEnd, expectedQuestionCount = 0 }: Use
 
                 // D. Handle Turn Complete
                 if (data.serverContent?.turnComplete) {
+                    const aiTurnText = outputTranscriptRef.current.trim();
+                    outputTranscriptRef.current = "";
+
                     // If interview is ending, don't save questions or start listening.
                     // The audio onended callback (or safety timeout) will trigger onInterviewEnd.
                     if (shouldEndInterviewRef.current) {
                         console.log("🛑 Turn complete received — interview ending, skipping question save");
                         // If AI audio already finished, end immediately
                         if (!isSpeakingRef.current) {
-                            finishInterview();
+                            finishInterview("wrap-up turn complete and audio already finished");
                         }
                         return;
                     }
 
                     // AI finished speaking -> Save a Question Record
-                    if (id) {
+                    const intId = interviewIdRef.current;
+                    if (intId) {
                         const expectedCount = expectedQuestionCountRef.current;
                         if (expectedCount > 0 && answeredQuestionCountRef.current >= expectedCount) {
                             console.log("🏁 All expected questions answered — ending interview without waiting for another turn");
                             shouldEndInterviewRef.current = true;
                             if (!isSpeakingRef.current) {
-                                finishInterview();
+                                finishInterview(`all ${expectedCount} bank questions answered (safety net — AI didn't call end_interview)`);
                             }
                             return;
                         }
 
+                        // Which bank question (if any) is this turn asking?
+                        const matchIdx = matchBankQuestion(aiTurnText, bankQuestionsRef.current);
+
                         // Only create a new question record if the previous one was answered
                         // (If not answered, this is a repeat/clarification — reuse the same question)
                         if (questionAnsweredRef.current || !currentQuestionIdRef.current) {
-                            saveQuestionToDB(id);
+                            pendingBankIndexRef.current = matchIdx;
+                            console.log(matchIdx >= 0
+                                ? `🎯 AI asked bank question ${matchIdx + 1}`
+                                : "🎯 AI turn didn't match a bank question (intro/follow-up — won't count toward progress)");
+                            saveQuestionToDB(intId, aiTurnText || "AI Question (Audio)");
                             questionAnsweredRef.current = false;
                         } else {
+                            // Re-ask/clarification of the pending question: keep its bank
+                            // index unless this turn clearly moved to a bank question
+                            if (matchIdx >= 0) pendingBankIndexRef.current = matchIdx;
                             console.log("🔁 Reusing current question (previous unanswered — likely a repeat/clarification)");
                         }
                         // Start listening to user
@@ -307,6 +389,143 @@ export function useGeminiLive({ onInterviewEnd, expectedQuestionCount = 0 }: Use
                 console.error("JSON Parse Error:", e);
             }
         };
+
+        ws.onerror = (err) => {
+            console.error("❌ WebSocket error:", err);
+        };
+
+        ws.onclose = (event) => {
+            if (wsRef.current !== ws) return; // superseded by a newer socket
+            setIsConnected(false);
+
+            if (intentionalCloseRef.current || hasEndedInterviewRef.current) return;
+
+            // Interview was already wrapping up — finish instead of reconnecting
+            if (shouldEndInterviewRef.current) {
+                finishInterview("socket closed while interview was wrapping up");
+                return;
+            }
+
+            console.warn(`⚠️ WebSocket closed unexpectedly (code ${event.code}) — attempting recovery`);
+
+            // A close before setupComplete on a handle-resume means the handle
+            // was rejected (expired/invalid) — fall back to the DB snapshot
+            if (!sawSetupComplete && opts.resumeHandle) {
+                console.warn("⚠️ Resume handle rejected — falling back to DB snapshot resume");
+                resumeHandleRef.current = null;
+            }
+
+            // Discard any in-flight answer: it never reached Gemini, and saving
+            // a partial answer would advance the cursor and skip a question.
+            // The AI re-asks the in-flight question after resume.
+            if (recognitionRef.current) {
+                try { recognitionRef.current.abort(); } catch { /* already stopped */ }
+            }
+            userTranscriptRef.current = "";
+            isSpeakingRef.current = false;
+
+            attemptReconnect();
+        };
+    }
+
+    function attemptReconnect() {
+        if (intentionalCloseRef.current || hasEndedInterviewRef.current) return;
+
+        if (reconnectAttemptsRef.current >= MAX_RECONNECT_ATTEMPTS) {
+            setIsReconnecting(false);
+            finishInterview(`connection recovery failed after ${MAX_RECONNECT_ATTEMPTS} attempts — ending with progress saved so far`);
+            return;
+        }
+
+        reconnectAttemptsRef.current += 1;
+        setIsReconnecting(true);
+        const delay = Math.min(1000 * 2 ** (reconnectAttemptsRef.current - 1), 8000);
+
+        reconnectTimerRef.current = setTimeout(async () => {
+            // Primary: Gemini's native session resumption — server restores the
+            // full conversation, no context re-injection needed
+            const handle = resumeHandleRef.current;
+            if (handle) {
+                console.log(`🔄 Reconnecting with Gemini session handle (attempt ${reconnectAttemptsRef.current}/${MAX_RECONNECT_ATTEMPTS})`);
+                openSocket({
+                    systemInstruction: systemInstructionRef.current,
+                    resumeHandle: handle,
+                    kickoffText: RECONNECT_NUDGE
+                });
+                return;
+            }
+
+            // Fallback: rebuild context from the DB snapshot
+            const intId = interviewIdRef.current;
+            if (!intId) {
+                finishInterview("no interview id available during connection recovery");
+                return;
+            }
+            try {
+                console.log(`🔄 Reconnecting via DB snapshot (attempt ${reconnectAttemptsRef.current}/${MAX_RECONNECT_ATTEMPTS})`);
+                const res = await fetch(`/api/interviews/${intId}/resume`);
+                if (!res.ok) throw new Error(`Resume endpoint returned ${res.status}`);
+                const data = await res.json();
+
+                systemInstructionRef.current = data.resumePrompt;
+                answeredBankIndicesRef.current = new Set<number>(data.answeredBankIndices ?? []);
+                answeredQuestionCountRef.current = answeredBankIndicesRef.current.size;
+                pendingBankIndexRef.current = -1;
+                questionAnsweredRef.current = false;
+                if (data.pendingQuestionId) {
+                    currentQuestionIdRef.current = data.pendingQuestionId;
+                    setCurrentQuestionId(data.pendingQuestionId);
+                }
+                userTranscriptRef.current = "";
+
+                openSocket({
+                    systemInstruction: data.resumePrompt,
+                    resumeHandle: null,
+                    kickoffText: "Resume the interview now."
+                });
+            } catch (err) {
+                console.error("❌ Snapshot resume failed:", err);
+                attemptReconnect();
+            }
+        }, delay);
+    }
+
+    // --- CONNECT ---
+    const connect = useCallback((systemInstruction: string, id?: string, options?: ConnectOptions) => {
+        hasEndedInterviewRef.current = false;
+        shouldEndInterviewRef.current = false;
+        intentionalCloseRef.current = false;
+        reconnectAttemptsRef.current = 0;
+        resumeHandleRef.current = null;
+        outputTranscriptRef.current = "";
+        bankQuestionsRef.current = options?.bankQuestions ?? [];
+        answeredBankIndicesRef.current = new Set<number>(options?.answeredBankIndices ?? []);
+        answeredQuestionCountRef.current = answeredBankIndicesRef.current.size;
+        pendingBankIndexRef.current = -1;
+        questionAnsweredRef.current = false;
+        currentQuestionIdRef.current = options?.pendingQuestionId ?? null;
+        setCurrentQuestionId(options?.pendingQuestionId ?? null);
+        userTranscriptRef.current = "";
+        systemInstructionRef.current = systemInstruction;
+
+        if (id) {
+            setInterviewId(id);
+            interviewIdRef.current = id;
+        }
+
+        if (!systemInstruction || systemInstruction.trim() === "") {
+            console.error("❌ ABORTING: No system instructions.");
+            return;
+        }
+
+        if (wsRef.current?.readyState === WebSocket.OPEN) return;
+
+        const isResume = answeredBankIndicesRef.current.size > 0;
+        openSocket({
+            systemInstruction,
+            resumeHandle: null,
+            kickoffText: isResume ? "Resume the interview now." : "Begin the interview."
+        });
     }, []);
 
 
@@ -427,7 +646,7 @@ export function useGeminiLive({ onInterviewEnd, expectedQuestionCount = 0 }: Use
 
                 // End interview if a disconnect was requested
                 if (shouldEndInterviewRef.current) {
-                    finishInterview();
+                    finishInterview("wrap-up audio finished playing");
                 }
             }
         };
@@ -438,15 +657,20 @@ export function useGeminiLive({ onInterviewEnd, expectedQuestionCount = 0 }: Use
             const bufferDurationMs = buffer.duration * 1000;
             setTimeout(() => {
                 if (shouldEndInterviewRef.current) {
-                    console.log("⏰ Safety timeout fired — ending interview");
-                    finishInterview();
+                    finishInterview("wrap-up safety timeout (audio onended never fired)");
                 }
             }, bufferDurationMs + 2000); // Wait for audio + 2s grace period
         }
     };
 
     const disconnect = useCallback(() => {
+        intentionalCloseRef.current = true;
         shouldEndInterviewRef.current = false;
+        if (reconnectTimerRef.current) {
+            clearTimeout(reconnectTimerRef.current);
+            reconnectTimerRef.current = null;
+        }
+        setIsReconnecting(false);
         wsRef.current?.close();
         inputSourceRef.current?.disconnect();
         workletNodeRef.current?.disconnect();
@@ -468,7 +692,7 @@ export function useGeminiLive({ onInterviewEnd, expectedQuestionCount = 0 }: Use
         }
     }, []);
 
-    return { connect, disconnect, startRecording, setMuted, isConnected, isSpeaking, volume };
+    return { connect, disconnect, startRecording, setMuted, isConnected, isReconnecting, isSpeaking, volume };
 }
 
 // --- UTILS ---
