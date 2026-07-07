@@ -8,9 +8,15 @@ const globalForPrisma = global as unknown as {
 export const db =
   globalForPrisma.prisma ??
   new PrismaClient({
-    log: ["query", "error", "warn"],
+    // Only log queries in development. Logging every query in production
+    // adds latency and floods the Vercel logs.
+    log:
+      process.env.NODE_ENV === "production"
+        ? ["error"]
+        : ["query", "error", "warn"],
   });
 
-if (process.env.NODE_ENV !== "production") {
-  globalForPrisma.prisma = db;
-}
+// Cache the client on the global object in ALL environments. On Vercel,
+// warm serverless invocations reuse the same client/connection pool instead
+// of opening a fresh one on every request.
+globalForPrisma.prisma = db;
