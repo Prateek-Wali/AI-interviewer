@@ -23,6 +23,7 @@ export default function InterviewSession() {
     startRecording,
     setMuted,
     isConnected,
+    isReconnecting,
     isSpeaking,
     volume
   } = useGeminiLive({
@@ -98,6 +99,9 @@ export default function InterviewSession() {
 
       const data = await response.json();
       console.log("✅ API Success. Persona:", data.systemPrompt);
+      if (data.resuming) {
+        console.log(`🔄 Resuming previous interview at question ${(data.answeredCount ?? 0) + 1}`);
+      }
 
       // Track interview ID for later redirect to report
       setCurrentInterviewId(data.interviewId);
@@ -106,7 +110,11 @@ export default function InterviewSession() {
       // STEP C: Connect Gemini
       console.log("3. Connecting to Gemini...");
       setStatus("connecting_gemini");
-      connect(data.systemPrompt, data.interviewId);
+      connect(data.systemPrompt, data.interviewId, {
+        bankQuestions: Array.isArray(data.questions) ? data.questions.map((q: { text: string }) => q.text) : [],
+        answeredBankIndices: data.answeredBankIndices ?? [],
+        pendingQuestionId: data.pendingQuestionId ?? null,
+      });
       startRecording();
       setStatus("active");
 
@@ -221,6 +229,14 @@ export default function InterviewSession() {
         <div className="absolute top-[40%] left-[40%] w-[400px] h-[400px] bg-cyan-50/80 rounded-full mix-blend-multiply filter blur-[80px] opacity-70 animate-drift-fast"></div>
       </div>
 
+      {/* Reconnecting banner — shown when the Gemini session dropped and is being restored */}
+      {isReconnecting && hasAISpoken && (
+        <div className="fixed top-16 left-1/2 -translate-x-1/2 z-40 flex items-center gap-2 bg-[#fff8c5] border border-[rgba(154,103,0,0.3)] rounded-md px-4 py-2 shadow-sm">
+          <div className="w-3 h-3 border-2 border-[#9a6700]/30 border-t-[#9a6700] rounded-full animate-spin" />
+          <span className="font-mono text-xs text-[#9a6700] font-medium">Connection hiccup — restoring your interview...</span>
+        </div>
+      )}
+
       {/* Waiting overlay — shown until AI speaks for the first time */}
       {hasPermission && !hasAISpoken && (
         <div className="fixed inset-0 z-50 bg-[#1f2328]/60 flex flex-col items-center justify-center">
@@ -254,7 +270,12 @@ export default function InterviewSession() {
 
         {/* Speaking status */}
         <div className="flex items-center gap-2">
-          {isSpeaking ? (
+          {isReconnecting ? (
+            <div className="flex items-center gap-2 bg-[#fff8c5] border border-[rgba(154,103,0,0.3)] rounded-md px-3 py-1.5">
+              <div className="w-3 h-3 border-2 border-[#9a6700]/30 border-t-[#9a6700] rounded-full animate-spin" />
+              <span className="font-mono text-xs text-[#9a6700] font-medium">Reconnecting...</span>
+            </div>
+          ) : isSpeaking ? (
             <div className="flex items-center gap-2 bg-[#f6f8fa] border border-[#d0d7de] rounded-md px-3 py-1.5">
               <div className="flex items-center gap-[3px] h-4">
                 {[0.4, 0.7, 1, 0.7, 0.4].map((scale, i) => (

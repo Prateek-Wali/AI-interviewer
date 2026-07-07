@@ -2,6 +2,12 @@ import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
 import { db } from "@/lib/prisma";
 import { checkInterviewLimit } from "@/lib/limits";
+import { generateSlimPrompt, generateResumePrompt } from "@/lib/interview-prompts";
+import { matchAnsweredRowsToBank } from "@/lib/question-matching";
+
+// A dropped interview (page refresh, browser crash) can be resumed if it
+// started within this window; older IN_PROGRESS rows are treated as abandoned
+const RESUME_WINDOW_MS = 60 * 60 * 1000; // 1 hour
 
 export async function POST(request: Request) {
   try {
@@ -11,15 +17,6 @@ export async function POST(request: Request) {
 
     if (!user || !user.email) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    // --- Check interview limit ---
-    const limitCheck = await checkInterviewLimit(user.id);
-    if (!limitCheck.allowed) {
-      return NextResponse.json(
-        { error: `Monthly limit of ${limitCheck.limit} interviews reached.` },
-        { status: 403 }
-      );
     }
 
     const body = await request.json();
@@ -53,7 +50,79 @@ export async function POST(request: Request) {
       console.warn("⚠️ WARNING: QuestionBank is empty! The user may not have uploaded a resume, or resume processing failed. AI will fall back to generic questions.");
     }
 
-    // 4. Create interview session
+    // 4. Resume a recent in-progress interview (e.g. after a page refresh)
+    //    instead of creating a new row — this doesn't count against the limit
+    const existing = await db.interview.findFirst({
+      where: {
+        userId: user.id,
+        status: "IN_PROGRESS",
+        startedAt: { gte: new Date(Date.now() - RESUME_WINDOW_MS) },
+      },
+      orderBy: { startedAt: "desc" },
+      include: { questions: { orderBy: { askedAt: "asc" } } },
+    });
+
+    if (existing && questions.length > 0) {
+      const answered = existing.questions.filter(q => q.userResponse !== null);
+      // Progress = bank questions actually completed (matched by question
+      // text), NOT answered-row count — rows also hold follow-up questions
+      const answeredBankIndices = matchAnsweredRowsToBank(
+        answered.map(q => q.questionText),
+        questions.map(q => q.questionText)
+      );
+
+      if (answeredBankIndices.length < questions.length) {
+        const pending = [...existing.questions].reverse().find(q => q.userResponse === null);
+
+        // If nothing was answered yet, a fresh intro prompt is fine;
+        // otherwise re-inject saved context and skip the intro
+        const systemPrompt = answeredBankIndices.length > 0
+          ? generateResumePrompt(
+              questions,
+              userPrefs,
+              existing.type,
+              answeredBankIndices,
+              answered.map(q => ({
+                questionText: q.questionText,
+                userResponse: q.userResponse ?? "",
+              }))
+            )
+          : generateSlimPrompt(questions, userPrefs, existing.type);
+
+        console.log(`🔄 Resuming in-progress interview ${existing.id} — ${answeredBankIndices.length}/${questions.length} bank questions answered`);
+
+        return NextResponse.json({
+          success: true,
+          interviewId: existing.id,
+          systemPrompt,
+          resuming: true,
+          answeredCount: answeredBankIndices.length,
+          answeredBankIndices,
+          pendingQuestionId: pending?.id ?? null,
+          questions: questions.map(q => ({
+            id: q.id,
+            text: q.questionText,
+            category: q.category,
+            context: q.context,
+          })),
+          userContext: {
+            targetRole: userPrefs?.targetRole || "General",
+            experienceLevel: userPrefs?.experienceLevel || "Entry",
+          }
+        });
+      }
+    }
+
+    // --- Check interview limit (only when actually starting a new one) ---
+    const limitCheck = await checkInterviewLimit(user.id);
+    if (!limitCheck.allowed) {
+      return NextResponse.json(
+        { error: `Monthly limit of ${limitCheck.limit} interviews reached.` },
+        { status: 403 }
+      );
+    }
+
+    // 5. Create interview session
     const interview = await db.interview.create({
       data: {
         userId: user.id,
@@ -64,13 +133,17 @@ export async function POST(request: Request) {
       }
     });
 
-    // 5. Generate SLIM system prompt (no resume, just questions)
+    // 6. Generate SLIM system prompt (no resume, just questions)
     const systemPrompt = generateSlimPrompt(questions, userPrefs, type);
 
     return NextResponse.json({
       success: true,
       interviewId: interview.id,
       systemPrompt,
+      resuming: false,
+      answeredCount: 0,
+      answeredBankIndices: [],
+      pendingQuestionId: null,
       questions: questions.map(q => ({
         id: q.id,
         text: q.questionText,
@@ -90,50 +163,4 @@ export async function POST(request: Request) {
       { status: 500 }
     );
   }
-}
-
-// ─────────────────────────────────────────────────
-// SLIM PROMPT — No resume, just a question script
-// ─────────────────────────────────────────────────
-
-function generateSlimPrompt(
-  questions: { questionText: string; category: string; context: string | null }[],
-  userPrefs: any,
-  type: string
-) {
-  const roleContext = userPrefs?.targetRole || "Software Engineer";
-
-  // Build numbered question list
-  const questionList = questions
-    .map((q, i) => `${i + 1}. "${q.questionText}" [Category: ${q.category}]${q.context ? ` (Context: ${q.context})` : ""}`)
-    .join("\n");
-
-  // Fallback if no questions were generated
-  const questionSection = questions.length > 0
-    ? `YOUR PREPARED QUESTIONS (ask in order):\n${questionList}`
-    : `No pre-generated questions found. Ask general ${type?.toLowerCase() || 'behavioral'} interview questions.`;
-
-  return `You are "Alex", a senior interviewer conducting a ${type?.toLowerCase() || 'behavioral'} interview for a ${roleContext} position.
-
-You have a prepared list of questions. Your ONLY job is to ask them and evaluate answers.
-
---- RULES ---
-
-1. INTRO: Start the interview exactly like a real interviewer would:
-- Introduce yourself: "Hi, I'm Alex — I'm a senior software engineer on the team and I'll be conducting your interview today."
-- Ask how they are doing and WAIT for their answer. Do not continue until they respond.
-- Respond naturally to whatever they say with 1 sentence of genuine small talk.
-- Wait for them to acknowledge. Then say "Alright, let's get into it." and begin Question 1.
-2. ASK IN ORDER: Ask questions one at a time, in the numbered order below.
-3. QUALITY GATE: After each answer:
-   - If the answer is LAZY (e.g., "Yes", "I did that"): Push back ONCE. Example: "I need more detail than that. Walk me through the specifics."
-   - If the answer is VAGUE: Drill down ONCE. Example: "How exactly did you implement that?"
-   - If they give a substantive answer: Move to the next question.
-4. PACING: If the user pauses for 3-4 seconds, wait. If silent for >7 seconds, ask "Are you still there?"
-5. REPEAT/CLARIFY: If the user asks you to repeat or clarify a question (e.g., "can you repeat that?", "what do you mean?", "I didn't catch that"), repeat or clarify the SAME question. Do NOT move to a new question. Do NOT treat their request as an answer.
-6. WRAP UP: After the last question, say: "That wraps up our interview. Thanks for your time today." Then immediately call the end_interview tool.
-
-${questionSection}
-
-Begin by introducing yourself and asking Question 1.`;
 }
