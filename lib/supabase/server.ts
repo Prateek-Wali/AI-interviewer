@@ -1,5 +1,22 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
+import { cache } from "react";
+
+/**
+ * Fetch the authenticated user, deduplicated per-request.
+ *
+ * `supabase.auth.getUser()` makes a network call to the Supabase auth server
+ * to validate the token. Several server components / layouts call it during a
+ * single render (e.g. dashboard layout + dashboard page), so wrapping it in
+ * React's `cache()` collapses those into a single network round-trip per request.
+ */
+export const getUser = cache(async () => {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  return user;
+});
 
 export async function createClient() {
   const cookieStore = await cookies();

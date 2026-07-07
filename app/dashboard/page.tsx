@@ -1,10 +1,9 @@
-import { createClient } from "@/lib/supabase/server";
+import { getUser } from "@/lib/supabase/server";
 import { db } from "@/lib/prisma";
 import DashboardContent from "@/components/dashboard/DashboardContent";
 
 export default async function DashboardPage() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await getUser();
   const userId = user?.id;
 
   // Get first name for welcome message
@@ -31,34 +30,38 @@ export default async function DashboardPage() {
   let activityMap: Record<string, number> = {};
 
   if (userId) {
-    // 1. Total completed interviews
-    const totalInterviews = await db.interview.count({
-      where: { userId, status: "COMPLETED" },
-    });
-
-    // 1.5 Total interviews this month (all statuses)
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    const interviewsThisMonth = await db.interview.count({
-      where: { userId, createdAt: { gte: startOfMonth } },
-    });
 
-    // 2. All completed interviews (for score avg, total time, streak, recent)
-    const completedInterviews = await db.interview.findMany({
-      where: { userId, status: "COMPLETED" },
-      orderBy: { startedAt: "desc" },
-      include: {
-        analysis: {
-          select: {
-            overallScore: true,
-            summaryText: true,
+    // Run the three independent queries in parallel instead of sequentially —
+    // one round-trip's worth of latency instead of three.
+    const [totalInterviews, interviewsThisMonth, completedInterviews] =
+      await Promise.all([
+        // 1. Total completed interviews
+        db.interview.count({
+          where: { userId, status: "COMPLETED" },
+        }),
+        // 1.5 Total interviews this month (all statuses)
+        db.interview.count({
+          where: { userId, createdAt: { gte: startOfMonth } },
+        }),
+        // 2. All completed interviews (for score avg, total time, streak, recent)
+        db.interview.findMany({
+          where: { userId, status: "COMPLETED" },
+          orderBy: { startedAt: "desc" },
+          include: {
+            analysis: {
+              select: {
+                overallScore: true,
+                summaryText: true,
+              },
+            },
+            _count: {
+              select: { questions: true },
+            },
           },
-        },
-        _count: {
-          select: { questions: true },
-        },
-      },
-    });
+        }),
+      ]);
 
     // 3. Average score
     const scores = completedInterviews
